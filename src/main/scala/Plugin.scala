@@ -1,4 +1,4 @@
-import io.github.gitbucket.helloworld.controller.HelloWorldController
+import io.github.gitbucket.ci.controller.SimpleCIController
 import io.github.gitbucket.solidbase.model.Version
 
 class Plugin extends gitbucket.core.plugin.Plugin {
@@ -8,6 +8,6 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   override val versions: List[Version] = List(new Version("1.0.0"))
 
   override val controllers = Seq(
-    "/*" -> new HelloWorldController()
+    "/*" -> new SimpleCIController()
   )
 }
