@@ -18,7 +18,11 @@ trait SimpleCIService {
     None
   }
 
+  def getBuildResults(userName: String, repositoryName: String): Seq[BuildResult] = Nil
+
   def runBuild(userName: String, repositoryName: String, branch: String, setting: BuildSetting): Unit = {
+    val startTime = System.currentTimeMillis
+
     val dir = new File("/tmp/" + repositoryName)
 
     Git.cloneRepository()
@@ -36,11 +40,17 @@ trait SimpleCIService {
       Thread.sleep(1000)
     }
 
+    val endTime = System.currentTimeMillis
+
     val exitValue = process.exitValue()
+    
+    println("Total: " + (endTime - startTime) + "msec")
     println("Finish build with exit code: " + exitValue)
   }
 
 }
 
 case class BuildSetting(userName: String, repositoryName: String, script: String)
-case class BuildResult(userName: String, repositoryName: String, buildNumber: Long, status: String, start: Long, end: Long, output: String)
+
+case class BuildResult(userName: String, repositoryName: String, branch: String,
+  buildNumber: Long, success: Boolean, start: Long, end: Long, output: String)
