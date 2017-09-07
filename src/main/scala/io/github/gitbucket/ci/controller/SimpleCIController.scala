@@ -45,11 +45,12 @@ class SimpleCIController extends ControllerBase
 
   @throws[IOException]
   private def colorize(text: String) = {
-    val os = new ByteArrayOutputStream()
-    val hos = new HtmlAnsiOutputStream(os)
-    hos.write(text.getBytes("UTF-8"))
-    hos.close
-    new String(os.toByteArray, "UTF-8")
+    using(new ByteArrayOutputStream()){ os =>
+      using(new HtmlAnsiOutputStream(os)){ hos =>
+        hos.write(text.getBytes("UTF-8"))
+      }
+      new String(os.toByteArray, "UTF-8")
+    }
   }
 
   get("/helloworld"){
