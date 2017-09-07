@@ -15,8 +15,8 @@
       </tr>
       @buildResults.map { buildResult =>
         <tr>
-          <td><a href="@url(repository)/build/@buildResult.buildNumber">@buildResult.buildNumber</a></td>
-          <td>@if(buildResult.success){ Success } else { Failure }</td>
+          <td><a href="javascript:showJobOutput(@buildResult.buildNumber, @buildResult.success);">@buildResult.buildNumber</a></td>
+          <td>@if(buildResult.success){ <span class="badge bg-green">Success</span> } else { <span class="badge bg-red">Failure</span> }</td>
           <td><a href="@url(repository)/commit/@buildResult.sha"><span class="commit-id">@buildResult.sha.substring(0, 7)</span></a></td>
           <td>@datetime(new java.util.Date(buildResult.start))</td>
           <td>@datetime(new java.util.Date(buildResult.end))</td>
@@ -24,5 +24,40 @@
         </tr>
       }
     </table>
+    <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Open Modal</button>
   }
 }
+<!-- Modal -->
+<div id="modal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title"></h4>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function showJobOutput(buildNumber, success){
+  var title = '#' + buildNumber + ' ';
+  if(success){
+    title = title + '<span class="badge bg-green">Success</span>';
+  } else {
+    title = title + '<span class="badge bg-red">Failure</span>';
+  }
+
+  $('.modal-title').html(title);
+  $('.modal-body').html('<img src="@assets("/common/images/indicator.gif")"> Loading...');
+  $('#modal').modal('show');
+  $.get('@url(repository)/build/' + buildNumber, function(data){
+    $('.modal-body').html($('<pre>').html(data));
+  });
+}
+</script>

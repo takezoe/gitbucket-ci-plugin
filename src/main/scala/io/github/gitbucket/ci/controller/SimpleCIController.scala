@@ -23,7 +23,7 @@ class SimpleCIController extends ControllerBase
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
     getBuildResult(repository.owner, repository.name, buildNumber).map { buildResult =>
-      gitbucket.ci.html.buildresult(repository, buildResult, None)
+      buildResult.output
     } getOrElse NotFound()
   })
 
