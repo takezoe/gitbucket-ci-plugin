@@ -1,12 +1,12 @@
 package io.github.gitbucket.ci.service
 
 import java.io.File
-import java.util.concurrent.{BlockingQueue, ConcurrentHashMap, LinkedBlockingQueue}
-import javafx.print.JobSettings
-
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
 import org.apache.commons.io.FileUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
 
 import scala.sys.process._
@@ -16,9 +16,9 @@ object BuildManager {
   val MaxBuildPerProject = 10
   val buildSettings = new ConcurrentHashMap[(String, String), BuildSetting]()
   val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
+  val runningJob = new AtomicReference[Option[BuildJob]](None)
 
-  private val queue = new LinkedBlockingQueue[BuildJob]()
-  private val runnung = null
+  val queue = new LinkedBlockingQueue[BuildJob]()
 
   def queueBuildJob(job: BuildJob): Unit = {
     queue.add(job)
@@ -39,43 +39,53 @@ object BuildManager {
 
   // TODO Manage running job status
   private def runBuild(job: BuildJob): Unit = {
+    runningJob.set(Some(job))
+
     val startTime = System.currentTimeMillis
+    val sb = new StringBuilder()
 
-    val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
-    if (dir.exists()) {
-      FileUtils.deleteDirectory(dir)
-    }
-
-    using(Git.cloneRepository()
-      .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
-      .setDirectory(dir).call()) { git =>
-
-      git.checkout().setName(job.sha).call()
-
-      val sha = git.log().setMaxCount(1).call().iterator().next().name()
-
-      val sb = new StringBuilder()
-      val process = Process(job.setting.script, dir).run(new BuildProcessLogger(sb))
-
-      while (process.isAlive()) {
-        Thread.sleep(1000)
+    val exitValue = try {
+      val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
+      if (dir.exists()) {
+        FileUtils.deleteDirectory(dir)
       }
 
-      val endTime = System.currentTimeMillis
+      using(Git.cloneRepository()
+        .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
+        .setDirectory(dir).call()) { git =>
 
-      val exitValue = process.exitValue()
+        git.checkout().setName(job.sha).call()
 
-      val result = BuildResult(job.userName, job.repositoryName, sha, job.buildNumber, exitValue == 0, startTime, endTime, sb.toString)
+        val process = Process(job.setting.script, dir).run(new BuildProcessLogger(sb))
 
-      val results = Option(buildResults.get((job.userName, job.repositoryName))).getOrElse(Nil)
-      BuildManager.buildResults.put((job.userName, job.repositoryName),
-        (if (results.length >= MaxBuildPerProject) results.tail else results) :+ result
-      )
+        while (process.isAlive()) {
+          Thread.sleep(1000)
+        }
 
-      println("Build number: " + job.buildNumber)
-      println("Total: " + (endTime - startTime) + "msec")
-      println("Finish build with exit code: " + exitValue)
+        process.exitValue()
+      }
+    } catch {
+      case e: Exception => {
+        sb.append(ExceptionUtils.getStackTrace(e))
+        e.printStackTrace()
+        -1
+      }
+    } finally {
+      runningJob.set(None)
     }
+
+    val endTime = System.currentTimeMillis
+
+    val result = BuildResult(job.userName, job.repositoryName, job.sha, job.buildNumber, exitValue == 0, startTime, endTime, sb.toString)
+
+    val results = Option(buildResults.get((job.userName, job.repositoryName))).getOrElse(Nil)
+    BuildManager.buildResults.put((job.userName, job.repositoryName),
+      (if (results.length >= MaxBuildPerProject) results.tail else results) :+ result
+    )
+
+    println("Build number: " + job.buildNumber)
+    println("Total: " + (endTime - startTime) + "msec")
+    println("Finish build with exit code: " + exitValue)
   }
 
 }
@@ -111,6 +121,19 @@ trait SimpleCIService {
     }) + 1
 
     BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, setting))
+  }
+
+  def getRunningJob(userName: String, repositoryName: String): Option[BuildJob] = {
+    BuildManager.runningJob.get.filter { job =>
+      job.userName == userName && job.repositoryName == repositoryName
+    }
+  }
+
+  def getQueuedJobs(userName: String, repositoryName: String): Seq[BuildJob] = {
+    import scala.collection.JavaConverters._
+    BuildManager.queue.iterator.asScala.filter { job =>
+      job.userName == userName && job.repositoryName == repositoryName
+    }.toSeq
   }
 }
 

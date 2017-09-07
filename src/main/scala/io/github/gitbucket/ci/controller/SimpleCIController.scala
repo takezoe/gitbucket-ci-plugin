@@ -4,7 +4,7 @@ import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
-import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator}
+import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator, WritableUsersAuthenticator}
 import gitbucket.core.util.Implicits._
 import io.github.gitbucket.ci.service.{BuildSetting, SimpleCIService}
 import org.eclipse.jgit.api.Git
@@ -13,11 +13,13 @@ import org.scalatra.Ok
 
 class SimpleCIController extends ControllerBase
   with SimpleCIService with AccountService with RepositoryService
-  with ReferrerAuthenticator {
+  with ReferrerAuthenticator with WritableUsersAuthenticator {
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
-    val buildResults = getBuildResults(repository.owner, repository.name)
-    gitbucket.ci.html.buildresults(repository, buildResults.reverse, None)
+    gitbucket.ci.html.buildresults(repository,
+      getBuildResults(repository.owner, repository.name).reverse,
+      getRunningJob(repository.owner, repository.name),
+      getQueuedJobs(repository.owner, repository.name), None)
   })
 
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
@@ -27,12 +29,20 @@ class SimpleCIController extends ControllerBase
     } getOrElse NotFound()
   })
 
+  post("/:owner/:repository/build/run")(writableUsersOnly { repository =>
+    using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+      JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
+        runBuild("root", "gitbucket", revision, BuildSetting("root", "gitbucket", "sbt compile"))
+      }
+    }
+    redirect(s"/${repository.owner}/${repository.name}/build")
+  })
 
   get("/helloworld"){
     getRepository("root", "test").map { repository =>
       using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-          runBuild("root", "test", revision, BuildSetting("root", "test", "./build.sh"))
+          runBuild("root", "gitbucket", revision, BuildSetting("root", "gitbucket", "sbt compile"))
         }
       }
     }
