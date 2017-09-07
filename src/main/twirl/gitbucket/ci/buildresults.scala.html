@@ -26,7 +26,7 @@
         <tr>
           <td>@job.buildNumber</td>
           <td><span class="badge bg-gray">Waiting</span></td>
-          <td><a href="@url(repository)/commit/@job.sha"><span class="commit-id">@job.sha.substring(0, 7)</span></a></td>
+          <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
           <td></td>
           <td></td>
           <td></td>
@@ -36,7 +36,7 @@
         <tr>
           <td>@job.buildNumber</td>
           <td><span class="badge bg-yellow">Running</span></td>
-          <td><a href="@url(repository)/commit/@job.sha"><span class="commit-id">@job.sha.substring(0, 7)</span></a></td>
+          <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
           <td></td>
           <td></td>
           <td></td>
@@ -46,7 +46,7 @@
         <tr>
           <td><a href="javascript:showJobOutput(@buildResult.buildNumber, @buildResult.success);">@buildResult.buildNumber</a></td>
           <td>@if(buildResult.success){ <span class="badge bg-green">Success</span> } else { <span class="badge bg-red">Failure</span> }</td>
-          <td><a href="@url(repository)/commit/@buildResult.sha"><span class="commit-id">@buildResult.sha.substring(0, 7)</span></a></td>
+          <td><a href="@url(repository)/commit/@buildResult.sha"><span class="monospace">@buildResult.sha.substring(0, 7)</span></a></td>
           <td>@datetime(new java.util.Date(buildResult.start))</td>
           <td>@datetime(new java.util.Date(buildResult.end))</td>
           <td>@((buildResult.end - buildResult.start) / 1000)sec</td>
