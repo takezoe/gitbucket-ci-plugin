@@ -2,8 +2,14 @@ package io.github.gitbucket.ci.controller
 
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
-import gitbucket.core.util.ReferrerAuthenticator
+import gitbucket.core.util.Directory.getRepositoryDir
+import gitbucket.core.util.SyntaxSugars.using
+import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator}
+import gitbucket.core.util.Implicits._
 import io.github.gitbucket.ci.service.{BuildSetting, SimpleCIService}
+import org.eclipse.jgit.api.Git
+import org.scalatra.Ok
+
 
 class SimpleCIController extends ControllerBase
   with SimpleCIService with AccountService with RepositoryService
@@ -15,6 +21,14 @@ class SimpleCIController extends ControllerBase
   })
 
   get("/helloworld"){
-    runBuild("root", "test", "master", BuildSetting("root", "test", "./build.sh"))
+    getRepository("root", "test").map { repository =>
+      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+        JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
+          runBuild("root", "test", revision, BuildSetting("root", "test", "./build.sh"))
+        }
+      }
+    }
+    Ok()
   }
+
 }

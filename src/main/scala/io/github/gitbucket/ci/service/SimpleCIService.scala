@@ -48,8 +48,9 @@ object BuildManager {
 
     using(Git.cloneRepository()
       .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
-      .setDirectory(dir)
-      .setBranch(job.branch).call()) { git =>
+      .setDirectory(dir).call()) { git =>
+
+      git.checkout().setName(job.sha).call()
 
       val sha = git.log().setMaxCount(1).call().iterator().next().name()
 
@@ -64,7 +65,7 @@ object BuildManager {
 
       val exitValue = process.exitValue()
 
-      val result = BuildResult(job.userName, job.repositoryName, job.branch, sha, job.buildNumber, exitValue == 0, startTime, endTime, sb.toString)
+      val result = BuildResult(job.userName, job.repositoryName, sha, job.buildNumber, exitValue == 0, startTime, endTime, sb.toString)
 
       val results = Option(buildResults.get((job.userName, job.repositoryName))).getOrElse(Nil)
       BuildManager.buildResults.put((job.userName, job.repositoryName),
@@ -79,7 +80,7 @@ object BuildManager {
 
 }
 
-case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, branch: String, sha: String, setting: BuildSetting)
+case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, setting: BuildSetting)
 
 trait SimpleCIService {
 
@@ -98,14 +99,14 @@ trait SimpleCIService {
     Option(BuildManager.buildResults.get((userName, repositoryName))).getOrElse(Nil)
   }
 
-  def runBuild(userName: String, repositoryName: String, branch: String, setting: BuildSetting): Unit = {
+  def runBuild(userName: String, repositoryName: String, sha: String, setting: BuildSetting): Unit = {
     val results = Option(BuildManager.buildResults.get((userName, repositoryName))).getOrElse(Nil)
     val buildNumber = (results.map(_.buildNumber) match {
       case Nil => 0
       case seq => seq.max
     }) + 1
 
-    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, branch, "TODO", setting))
+    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, setting))
   }
 }
 
@@ -127,5 +128,5 @@ class BuildProcessLogger(sb: StringBuilder) extends ProcessLogger {
 
 case class BuildSetting(userName: String, repositoryName: String, script: String)
 
-case class BuildResult(userName: String, repositoryName: String, branch: String, sha: String,
+case class BuildResult(userName: String, repositoryName: String, sha: String,
   buildNumber: Long, success: Boolean, start: Long, end: Long, output: String)
