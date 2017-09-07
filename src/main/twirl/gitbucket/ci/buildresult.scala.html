@@ -1,0 +1,11 @@
+@(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
+  buildResult: io.github.gitbucket.ci.service.BuildResult,
+  info: Option[Any])(implicit context: gitbucket.core.controller.Context)
+@import gitbucket.core.view.helpers._
+@gitbucket.core.html.main("Build", Some(repository)) {
+  @gitbucket.core.html.menu("build", repository) {
+
+
+    <pre>@buildResult.output</pre>
+  }
+}

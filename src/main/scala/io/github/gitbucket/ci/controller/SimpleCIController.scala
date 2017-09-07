@@ -20,6 +20,14 @@ class SimpleCIController extends ControllerBase
     gitbucket.ci.html.buildresults(repository, buildResults.reverse, None)
   })
 
+  get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
+    val buildNumber = params("buildNumber").toLong
+    getBuildResult(repository.owner, repository.name, buildNumber).map { buildResult =>
+      gitbucket.ci.html.buildresult(repository, buildResult, None)
+    } getOrElse NotFound()
+  })
+
+
   get("/helloworld"){
     getRepository("root", "test").map { repository =>
       using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>

@@ -15,7 +15,7 @@
       </tr>
       @buildResults.map { buildResult =>
         <tr>
-          <td>@buildResult.buildNumber</td>
+          <td><a href="@url(repository)/build/@buildResult.buildNumber">@buildResult.buildNumber</a></td>
           <td>@if(buildResult.success){ Success } else { Failure }</td>
           <td><a href="@url(repository)/commit/@buildResult.sha"><span class="commit-id">@buildResult.sha.substring(0, 7)</span></a></td>
           <td>@datetime(new java.util.Date(buildResult.start))</td>

@@ -99,6 +99,10 @@ trait SimpleCIService {
     Option(BuildManager.buildResults.get((userName, repositoryName))).getOrElse(Nil)
   }
 
+  def getBuildResult(userName: String, repositoryName: String, buildNumber: Long): Option[BuildResult] = {
+    getBuildResults(userName, repositoryName).find(_.buildNumber == buildNumber)
+  }
+
   def runBuild(userName: String, repositoryName: String, sha: String, setting: BuildSetting): Unit = {
     val results = Option(BuildManager.buildResults.get((userName, repositoryName))).getOrElse(Nil)
     val buildNumber = (results.map(_.buildNumber) match {
@@ -113,12 +117,12 @@ trait SimpleCIService {
 class BuildProcessLogger(sb: StringBuilder) extends ProcessLogger {
 
   override def err(s: => String): Unit = {
-    sb.append(s)
+    sb.append(s + "\n")
     println(s) // TODO Debug
   }
 
   override def out(s: => String): Unit = {
-    sb.append(s)
+    sb.append(s + "\n")
     println(s) // TODO Debug
   }
 
