@@ -1,13 +1,16 @@
 package io.github.gitbucket.ci.controller
 
+import java.io.ByteArrayOutputStream
+
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
-import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator, WritableUsersAuthenticator}
+import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator, StringUtil, WritableUsersAuthenticator}
 import gitbucket.core.util.Implicits._
 import io.github.gitbucket.ci.service.{BuildSetting, SimpleCIService}
 import org.eclipse.jgit.api.Git
+import org.fusesource.jansi.HtmlAnsiOutputStream
 import org.scalatra.Ok
 
 
@@ -25,7 +28,7 @@ class SimpleCIController extends ControllerBase
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
     getBuildResult(repository.owner, repository.name, buildNumber).map { buildResult =>
-      buildResult.output
+      colorize(StringUtil.escapeHtml(buildResult.output))
     } getOrElse NotFound()
   })
 
@@ -37,6 +40,17 @@ class SimpleCIController extends ControllerBase
     }
     redirect(s"/${repository.owner}/${repository.name}/build")
   })
+
+  import java.io.IOException
+
+  @throws[IOException]
+  private def colorize(text: String) = {
+    val os = new ByteArrayOutputStream()
+    val hos = new HtmlAnsiOutputStream(os)
+    hos.write(text.getBytes("UTF-8"))
+    hos.close
+    new String(os.toByteArray, "UTF-8")
+  }
 
   get("/helloworld"){
     getRepository("root", "test").map { repository =>
