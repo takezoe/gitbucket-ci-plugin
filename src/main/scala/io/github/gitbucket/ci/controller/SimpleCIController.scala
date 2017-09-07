@@ -32,7 +32,7 @@ class SimpleCIController extends ControllerBase
   post("/:owner/:repository/build/run")(writableUsersOnly { repository =>
     using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
       JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-        runBuild("root", "gitbucket", revision, BuildSetting("root", "gitbucket", "sbt compile"))
+        runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
       }
     }
     redirect(s"/${repository.owner}/${repository.name}/build")
@@ -42,7 +42,7 @@ class SimpleCIController extends ControllerBase
     getRepository("root", "test").map { repository =>
       using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-          runBuild("root", "gitbucket", revision, BuildSetting("root", "gitbucket", "sbt compile"))
+          runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
         }
       }
     }
