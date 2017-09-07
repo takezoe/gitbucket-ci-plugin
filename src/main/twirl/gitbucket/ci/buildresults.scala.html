@@ -1,0 +1,29 @@
+@(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
+  buildResults: Seq[io.github.gitbucket.ci.service.BuildResult],
+  info: Option[Any])(implicit context: gitbucket.core.controller.Context)
+@import gitbucket.core.view.helpers._
+@gitbucket.core.html.main("Build", Some(repository)) {
+  @gitbucket.core.html.menu("build", repository) {
+    <table class="table table-bordered">
+      <tr>
+        <th>#</th>
+        <th>Status</th>
+        <th>Commit</th>
+        <th>Start time</th>
+        <th>End time</th>
+        <th>Duration</th>
+      </tr>
+      @buildResults.map { buildResult =>
+        <tr>
+          <td>@buildResult.buildNumber</td>
+          <td>@if(buildResult.success){ Success } else { Failure }</td>
+          <td>@buildResult.branch</td>
+          <td>@datetime(new java.util.Date(buildResult.start))</td>
+          <td>@datetime(new java.util.Date(buildResult.end))</td>
+          <td>@((buildResult.end - buildResult.start) / 1000)sec</td>
+        </tr>
+      }
+
+    </table>
+  }
+}

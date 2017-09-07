@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
+import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 
 import scala.sys.process._
@@ -41,6 +42,9 @@ trait SimpleCIService {
     }) + 1
 
     val dir = new File(s"/tmp/${userName}-${repositoryName}-${buildNumber}")
+    if(dir.exists()){
+      FileUtils.deleteDirectory(dir)
+    }
 
     Git.cloneRepository()
       .setURI(getRepositoryDir(userName, repositoryName).toURI.toString)
