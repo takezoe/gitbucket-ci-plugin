@@ -2,6 +2,7 @@ import gitbucket.core.controller.Context
 import gitbucket.core.plugin.Link
 import gitbucket.core.service.RepositoryService
 import io.github.gitbucket.ci.controller.SimpleCIController
+import io.github.gitbucket.ci.service.BuildManager
 import io.github.gitbucket.solidbase.model.Version
 
 class Plugin extends gitbucket.core.plugin.Plugin {
@@ -17,4 +18,6 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   override val repositoryMenus = Seq(
     (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build"))
   )
+
+  BuildManager.startBuildManager()
 }
