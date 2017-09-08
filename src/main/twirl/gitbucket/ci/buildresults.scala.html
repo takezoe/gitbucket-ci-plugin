@@ -92,7 +92,7 @@ var app = new Vue({
       $('.modal-body').html('<img src="@assets("/common/images/indicator.gif")"> Loading...');
       $('#modal').modal('show');
 
-      $.get('@url(repository)/build/' + buildNumber, function(data){
+      $.get('@url(repository)/build/' + job.buildNumber, function(data){
         $('.modal-body').html($('<pre style="background-color: black; color: white;">').html(data));
       });
     }
@@ -114,7 +114,11 @@ function updateStatus(loop){
       }
     }
     if(loop){
-      setTimeout(updateStatus, 5000);
+      setTimeout(updateStatus, 10000);
+    }
+  }).fail(function(){
+    if(loop){
+      setTimeout(updateStatus, 60000);
     }
   });
 }
