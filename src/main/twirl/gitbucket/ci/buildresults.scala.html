@@ -37,7 +37,7 @@
       }
       @runningJob.map { job =>
         <tr>
-          <td>@job.buildNumber</td>
+          <td><a href="javascript:showJobOutput(@job.buildNumber, 'running');">@job.buildNumber</a></td>
           <td><span class="badge bg-yellow">Running</span></td>
           <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
           <td>@job.startTime.map { startTime => @datetime(new java.util.Date(startTime)) }</td>
@@ -47,7 +47,7 @@
       }
       @buildResults.map { buildResult =>
         <tr>
-          <td><a href="javascript:showJobOutput(@buildResult.buildNumber, @buildResult.success);">@buildResult.buildNumber</a></td>
+          <td><a href="javascript:showJobOutput(@buildResult.buildNumber, '@if(buildResult.success){success} else {failure}');">@buildResult.buildNumber</a></td>
           <td>@if(buildResult.success){ <span class="badge bg-green">Success</span> } else { <span class="badge bg-red">Failure</span> }</td>
           <td><a href="@url(repository)/commit/@buildResult.sha"><span class="monospace">@buildResult.sha.substring(0, 7)</span></a></td>
           <td>@datetime(new java.util.Date(buildResult.start))</td>
@@ -76,12 +76,14 @@
   </div>
 </div>
 <script>
-function showJobOutput(buildNumber, success){
+function showJobOutput(buildNumber, status){
   var title = '#' + buildNumber + ' ';
-  if(success){
+  if(status == 'success'){
     title = title + '<span class="badge bg-green">Success</span>';
-  } else {
+  } else if(status == 'failure'){
     title = title + '<span class="badge bg-red">Failure</span>';
+  } else if(status == 'running'){
+    title = title + '<span class="badge bg-yellow">Running</span>';
   }
 
   $('.modal-title').html(title);
@@ -90,7 +92,7 @@ function showJobOutput(buildNumber, success){
   $('#modal').modal('show');
 
   $.get('@url(repository)/build/' + buildNumber, function(data){
-    $('.modal-body').html($('<pre>').html(data));
+    $('.modal-body').html($('<pre style="background-color: black; color: white;">').html(data));
   });
 }
 </script>

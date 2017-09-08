@@ -43,9 +43,7 @@ class SimpleCIController extends ControllerBase
     redirect(s"/${repository.owner}/${repository.name}/build")
   })
 
-  import java.io.IOException
-
-  @throws[IOException]
+  @throws[java.io.IOException]
   private def colorize(text: String) = {
     using(new ByteArrayOutputStream()){ os =>
       using(new HtmlAnsiOutputStream(os)){ hos =>
