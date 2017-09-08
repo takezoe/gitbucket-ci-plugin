@@ -12,6 +12,8 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   override val description: String = "This plugin adds simple CI functionality to GitBucket."
   override val versions: List[Version] = List(new Version("1.0.0"))
 
+  override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
+
   override val controllers = Seq(
     "/*" -> new SimpleCIController()
   )

@@ -2,6 +2,7 @@ package io.github.gitbucket.ci.controller
 
 import java.io.ByteArrayOutputStream
 
+import gitbucket.core.api.JsonFormat.{apiPathSerializer, jsonFormats}
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
@@ -11,8 +12,10 @@ import gitbucket.core.util.Implicits._
 import io.github.gitbucket.ci.service.{BuildSetting, SimpleCIService}
 import org.eclipse.jgit.api.Git
 import org.fusesource.jansi.HtmlAnsiOutputStream
+import org.json4s.jackson.Serialization
 import org.scalatra.Ok
-
+import org.json4s.{DefaultFormats, Formats}
+import org.scalatra.json._
 
 class SimpleCIController extends ControllerBase
   with SimpleCIService with AccountService with RepositoryService
@@ -42,6 +45,48 @@ class SimpleCIController extends ControllerBase
     }
     redirect(s"/${repository.owner}/${repository.name}/build")
   })
+
+  ajaxGet("/:owner/:repository/build/status")(referrersOnly { repository =>
+    import gitbucket.core.view.helpers._
+
+    val queuedJobs = getQueuedJobs(repository.owner, repository.name).map { job =>
+      JobStatus(
+        buildNumber = job.buildNumber,
+        status      = "waiting",
+        sha         = job.sha,
+        startTime   = "",
+        endTime     = "" ,
+        duration    = ""
+      )
+    }
+
+    val runningJob = getRunningJob(repository.owner, repository.name).map { job =>
+      JobStatus(
+        buildNumber = job.buildNumber,
+        status      = "running",
+        sha         = job.sha,
+        startTime   = job.startTime.map { startTime => datetime(new java.util.Date(startTime)) }.getOrElse(""),
+        endTime     = "",
+        duration    = ""
+      )
+    }.toSeq
+
+    val finishedJobs = getBuildResults(repository.owner, repository.name).map { job =>
+      JobStatus(
+        buildNumber = job.buildNumber,
+        status      = if(job.success) "success" else "failure",
+        sha         = job.sha,
+        startTime   = datetime(new java.util.Date(job.start)),
+        endTime     = datetime(new java.util.Date(job.end)),
+        duration    = ((job.end - job.start) / 1000) + "sec"
+      )
+    }
+
+    contentType = formats("json")
+    Serialization.write(queuedJobs ++ runningJob ++ finishedJobs)(jsonFormats)
+  })
+
+  case class JobStatus(buildNumber: Long, status: String, sha: String, startTime: String, endTime: String, duration: String)
 
   @throws[java.io.IOException]
   private def colorize(text: String) = {

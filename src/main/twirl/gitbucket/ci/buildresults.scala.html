@@ -7,15 +7,43 @@
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main("Build", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
-    @if(isEditable){
-      <div class="head" style="height: 24px;">
-        <div class="pull-right">
-          <form method="POST" action="@url(repository)/build/run">
-            <input type="submit" class="btn btn-sm btn-success" value="Run build" @if(runningJob.nonEmpty || queuedJobs.nonEmpty){disabled}>
-          </form>
+    <script src="@context.path/plugin-assets/ci/vue.js"></script>
+    <div id="app">
+      @if(isEditable){
+        <div class="head" style="height: 24px;">
+          <div class="pull-right">
+            <form method="POST" action="@url(repository)/build/run">
+              <input type="submit" class="btn btn-sm btn-success" value="Run build" :disabled="running || waiting">
+            </form>
+          </div>
         </div>
-      </div>
-    }
+      }
+
+      <table class="table table-bordered">
+        <tr>
+          <th>#</th>
+          <th>Status</th>
+          <th>Commit</th>
+          <th>Start time</th>
+          <th>End time</th>
+          <th>Duration</th>
+        </tr>
+        <tr v-for="job in jobs">
+          <td>{{job.buildNumber}}</td>
+          <td>
+            <span v-if="job.status == 'waiting'" class="badge bg-gray">Waiting</span>
+            <span v-if="job.status == 'running'" class="badge bg-yellow">Running</span>
+            <span v-if="job.status == 'success'" class="badge bg-green">Success</span>
+            <span v-if="job.status == 'failure'" class="badge bg-red">Failure</span>
+          </td>
+          <td><a :href="'@url(repository)/commit/' + job.sha"><span class="monospace">{{job.sha.substring(0, 7)}}</span></a></td>
+          <td>{{job.startTime}}</td>
+          <td>{{job.endTime}}</td>
+          <td>{{job.duration}}</td>
+        </tr>
+      </table>
+    </div>
+    @*
     <table class="table table-bordered">
       <tr>
         <th>#</th>
@@ -26,7 +54,7 @@
         <th>Duration</th>
       </tr>
       @queuedJobs.map { job =>
-        <tr>
+        <tr id="job-@job.buildNumber">
           <td>@job.buildNumber</td>
           <td><span class="badge bg-gray">Waiting</span></td>
           <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
@@ -56,6 +84,7 @@
         </tr>
       }
     </table>
+    *@
   }
 }
 <!-- Modal -->
@@ -76,6 +105,15 @@
   </div>
 </div>
 <script>
+var app = new Vue({
+  el: '#app',
+  data: {
+    jobs: [],
+    running: false,
+    waiting: false
+  }
+});
+
 function showJobOutput(buildNumber, status){
   var title = '#' + buildNumber + ' ';
   if(status == 'success'){
@@ -95,4 +133,25 @@ function showJobOutput(buildNumber, status){
     $('.modal-body').html($('<pre style="background-color: black; color: white;">').html(data));
   });
 }
+
+function updateStatus(){
+  $.get('@url(repository)/build/status', function(data){
+    app.$data.jobs = data;
+
+    app.$data.running = false;
+    app.$data.waiting = false;
+    for(var i = 0; i < data.length; i++){
+      if(data[i].status == 'running'){
+        app.$data.running = true;
+      }
+      if(data[i].status == 'waiting'){
+        app.$data.waiting = true;
+      }
+    }
+
+    setTimeout(updateStatus, 5000);
+  });
+}
+
+updateStatus();
 </script>
