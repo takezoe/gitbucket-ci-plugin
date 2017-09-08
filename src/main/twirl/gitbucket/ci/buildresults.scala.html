@@ -1,6 +1,5 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  isEditable: Boolean,
-  info: Option[Any])(implicit context: gitbucket.core.controller.Context)
+  isEditable: Boolean)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main("Build", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
@@ -25,7 +24,7 @@
         </tr>
         <tr v-for="job in jobs">
           <td>
-            <a v-if="job.status != 'waiting'" v-on:click="showOutputDialog(job)" href="javascript:void(0);">{{job.buildNumber}}</a>
+            <a v-if="job.status != 'waiting'" :href="'@url(repository)/build/' + job.buildNumber">{{job.buildNumber}}</a>
             <span v-if="job.status == 'waiting'">{{job.buildNumber}}</span>
           </td>
           <td>
@@ -43,25 +42,6 @@
     </div>
   }
 }
-<!-- Modal -->
-<div id="modal" class="modal fade" role="dialog">
-  <div class="modal-dialog" style="width: 90%;">
-    <!-- Modal content-->
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title"></h4>
-      </div>
-      <div class="modal-body">
-        <pre id="output" style="background-color: black; color: white;"></pre>
-        <span id="indicator"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 <script>
 var app = new Vue({
   el: '#app',
@@ -78,45 +58,9 @@ var app = new Vue({
       $.post('@url(repository)/build/run', function(){
         updateStatus(false);
       });
-    },
-    showOutputDialog: function(job){
-      var title = '#' + job.buildNumber + ' ';
-      if(job.status == 'success'){
-        title = title + '<span class="badge bg-green">Success</span>';
-      } else if(job.status == 'failure'){
-        title = title + '<span class="badge bg-red">Failure</span>';
-      } else if(job.status == 'running'){
-        title = title + '<span class="badge bg-yellow">Running</span>';
-      }
-
-      $('.modal-title').html(title);
-      $('#indicator').show();
-      $('#output').html('');
-      $('#modal').modal('show');
-
-      if(job.status == 'running'){
-        fetchRunningJobOutput(job, 0);
-      } else {
-        $.get('@url(repository)/build/' + job.buildNumber, function(data){
-          $('#output').html(data);
-          $('#indicator').hide();
-        });
-      }
     }
   }
 });
-
-function fetchRunningJobOutput(job, from){
-  $.get('@url(repository)/build/' + job.buildNumber + '/' + from, function(data){
-    $('#output').append(data);
-
-    setTimeout(function(){
-      fetchRunningJobOutput(job, from + data.length);
-    }, 1000)
-  }).fail(function(res){
-    $('#indicator').hide();
-  });
-}
 
 function updateStatus(loop){
   $.get('@url(repository)/build/status', function(data){

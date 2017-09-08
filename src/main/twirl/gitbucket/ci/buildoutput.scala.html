@@ -1,0 +1,68 @@
+@(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
+  buildNumber: Long, sha: String, status: String)(implicit context: gitbucket.core.controller.Context)
+@import gitbucket.core.view.helpers._
+@gitbucket.core.html.main("Build", Some(repository)) {
+  @gitbucket.core.html.menu("build", repository) {
+    <script src="@context.path/plugin-assets/ci/vue.js"></script>
+    <div id="app">
+      <h2>
+        #@buildNumber @sha
+        @if(status == "success"){
+          <span class="badge bg-green">Success</span>
+        }
+        @if(status == "failure"){
+          <span class="badge bg-red">Failure</span>
+        }
+        @if(status == "running"){
+          <span v-if="status == 'success'" class="badge bg-green">Success</span>
+          <span v-if="status == 'failure'" class="badge bg-red">Failure</span>
+          <span v-if="status == 'running'" class="badge bg-yellow">Running</span>
+        }
+      </h2>
+      <pre id="output" style="background-color: black; color: white;">{{output}}</pre>
+      <span v-if="loading"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
+    </div>
+  }
+}
+<script>
+var app = new Vue({
+  el: '#app',
+  data: {
+    output: '',
+    status: '@status',
+    loading: true
+  },
+  created: function(){
+    @if(status == "running"){
+      fetchRunningJobOutput(0);
+    } else {
+      fetchFinishedJobOutput();
+    }
+  }
+});
+
+function fetchRunningJobOutput(from){
+  $.get('@url(repository)/build/output/@buildNumber/' + from, function(data){
+    app.$data.output = app.$data.output + data;
+    setTimeout(function(){
+      fetchRunningJobOutput(from + data.length);
+    }, 1000)
+  }).fail(function(res){
+    $.get('@url(repository)/build/status', function(data){
+      for(var i = 0; i < data.length; i++){
+        if(data[i].buildNumber == @buildNumber){
+          app.$data.status = data[i].status;
+        }
+      }
+      app.$data.loading = false;
+    });
+  });
+}
+
+function fetchFinishedJobOutput(){
+  $.get('@url(repository)/build/output/@buildNumber', function(data){
+    app.$data.output = data;
+    app.$data.loading = false;
+  });
+}
+</script>

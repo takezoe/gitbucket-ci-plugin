@@ -20,18 +20,31 @@ class SimpleCIController extends ControllerBase
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
     gitbucket.ci.html.buildresults(repository,
-      hasDeveloperRole(repository.owner, repository.name, context.loginAccount),
-      None)
+      hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
   })
 
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
+    val buildNumber = params("buildNumber").toLong
+    getRunningJob(repository.owner, repository.name)
+      .find { case (job, _) => job.buildNumber == buildNumber }
+      .map { case (job, _) => (job.buildNumber, job.sha, "running")
+    }.orElse {
+      getBuildResults(repository.owner, repository.name)
+        .find { result => result.buildNumber == buildNumber }
+        .map { result => (result.buildNumber, result.sha, if(result.success) "success" else "failure") }
+    }.map { case (buildNumbe, sha, status) =>
+      gitbucket.ci.html.buildoutput(repository, buildNumber, sha, status)
+    } getOrElse NotFound()
+  })
+
+  get("/:owner/:repository/build/output/:buildNumber")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
     getBuildResult(repository.owner, repository.name, buildNumber).map { buildResult =>
       colorize(StringUtil.escapeHtml(buildResult.output))
     } getOrElse NotFound()
   })
 
-  get("/:owner/:repository/build/:buildNumber/:from")(referrersOnly { repository =>
+  get("/:owner/:repository/build/output/:buildNumber/:from")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
     val from = params("from").toInt
     getRunningJob(repository.owner, repository.name).collect { case (job, sb) if(job.buildNumber == buildNumber) =>
