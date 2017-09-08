@@ -16,7 +16,7 @@ object BuildManager {
   val MaxBuildPerProject = 10
   val buildSettings = new ConcurrentHashMap[(String, String), BuildSetting]()
   val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
-  val runningJob = new AtomicReference[Option[BuildJob]](None)
+  val runningJob = new AtomicReference[Option[(BuildJob, StringBuffer)]](None)
 
   val queue = new LinkedBlockingQueue[BuildJob]()
 
@@ -39,9 +39,9 @@ object BuildManager {
 
   private def runBuild(job: BuildJob): Unit = {
     val startTime = System.currentTimeMillis
-    runningJob.set(Some(job.copy(startTime = Some(startTime))))
 
-    val sb = new StringBuilder()
+    val sb = new StringBuffer()
+    runningJob.set(Some((job.copy(startTime = Some(startTime)), sb)))
 
     val exitValue = try {
       val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
@@ -122,8 +122,8 @@ trait SimpleCIService {
     BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, setting))
   }
 
-  def getRunningJob(userName: String, repositoryName: String): Option[BuildJob] = {
-    BuildManager.runningJob.get.filter { job =>
+  def getRunningJob(userName: String, repositoryName: String): Option[(BuildJob, StringBuffer)] = {
+    BuildManager.runningJob.get.filter { case (job, sb) =>
       job.userName == userName && job.repositoryName == repositoryName
     }
   }
@@ -136,7 +136,7 @@ trait SimpleCIService {
   }
 }
 
-class BuildProcessLogger(sb: StringBuilder) extends ProcessLogger {
+class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
 
   override def err(s: => String): Unit = {
     sb.append(s + "\n")

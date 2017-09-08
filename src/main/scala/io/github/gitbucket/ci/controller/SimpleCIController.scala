@@ -31,6 +31,25 @@ class SimpleCIController extends ControllerBase
     } getOrElse NotFound()
   })
 
+  get("/:owner/:repository/build/:buildNumber/:from")(referrersOnly { repository =>
+    val buildNumber = params("buildNumber").toLong
+    val from = params("from").toInt
+    getRunningJob(repository.owner, repository.name).collect { case (job, sb) if(job.buildNumber == buildNumber) =>
+      sb.toString.drop(from)
+    } orElse {
+      getBuildResults(repository.owner, repository.name)
+        .find { result => result.buildNumber == buildNumber }
+        .map  { result =>
+          val output = result.output.drop(from)
+          if(output.isEmpty){
+            NotFound()
+          } else {
+            output
+          }
+        }
+    } getOrElse NotFound()
+  })
+
   post("/:owner/:repository/build/run")(writableUsersOnly { repository =>
     using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
       JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
@@ -54,7 +73,7 @@ class SimpleCIController extends ControllerBase
       )
     }
 
-    val runningJob = getRunningJob(repository.owner, repository.name).map { job =>
+    val runningJob = getRunningJob(repository.owner, repository.name).map { case (job, _) =>
       JobStatus(
         buildNumber = job.buildNumber,
         status      = "running",

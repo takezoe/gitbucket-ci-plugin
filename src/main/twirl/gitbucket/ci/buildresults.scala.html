@@ -53,6 +53,8 @@
         <h4 class="modal-title"></h4>
       </div>
       <div class="modal-body">
+        <pre id="output" style="background-color: black; color: white;"></pre>
+        <span id="indicator"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -88,16 +90,33 @@ var app = new Vue({
       }
 
       $('.modal-title').html(title);
-
-      $('.modal-body').html('<img src="@assets("/common/images/indicator.gif")"> Loading...');
+      $('#indicator').show();
+      $('#output').html('');
       $('#modal').modal('show');
 
-      $.get('@url(repository)/build/' + job.buildNumber, function(data){
-        $('.modal-body').html($('<pre style="background-color: black; color: white;">').html(data));
-      });
+      if(job.status == 'running'){
+        fetchRunningJobOutput(job, 0);
+      } else {
+        $.get('@url(repository)/build/' + job.buildNumber, function(data){
+          $('#output').html(data);
+          $('#indicator').hide();
+        });
+      }
     }
   }
 });
+
+function fetchRunningJobOutput(job, from){
+  $.get('@url(repository)/build/' + job.buildNumber + '/' + from, function(data){
+    $('#output').append(data);
+
+    setTimeout(function(){
+      fetchRunningJobOutput(job, from + data.length);
+    }, 1000)
+  }).fail(function(res){
+    $('#indicator').hide();
+  });
+}
 
 function updateStatus(loop){
   $.get('@url(repository)/build/status', function(data){
