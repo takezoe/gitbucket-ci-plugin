@@ -9,13 +9,10 @@
       @if(isEditable){
         <div class="head" style="height: 24px;">
           <div class="pull-right">
-            <form method="POST" action="@url(repository)/build/run">
-              <input type="submit" class="btn btn-sm btn-success" value="Run build" :disabled="running || waiting">
-            </form>
+            <input type="button" id="run-build" class="btn btn-sm btn-success" value="Run build" :disabled="running || waiting">
           </div>
         </div>
       }
-
       <table class="table table-bordered">
         <tr>
           <th>#</th>
@@ -131,7 +128,7 @@ function showJobOutput(buildNumber, status){
   });
 }
 
-function updateStatus(){
+function updateStatus(loop){
   $.get('@url(repository)/build/status', function(data){
     app.$data.jobs = data;
 
@@ -145,10 +142,18 @@ function updateStatus(){
         app.$data.waiting = true;
       }
     }
-
-    setTimeout(updateStatus, 5000);
+    if(loop){
+      setTimeout(updateStatus, 5000);
+    }
   });
 }
+updateStatus(true);
 
-updateStatus();
+$(function(){
+  $('#run-build').click(function(){
+    $.post('@url(repository)/build/run', function(){
+      updateStatus(false);
+    });
+  });
+});
 </script>

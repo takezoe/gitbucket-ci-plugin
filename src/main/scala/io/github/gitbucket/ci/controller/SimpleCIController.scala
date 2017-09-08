@@ -37,7 +37,7 @@ class SimpleCIController extends ControllerBase
         runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
       }
     }
-    redirect(s"/${repository.owner}/${repository.name}/build")
+    Ok()
   })
 
   ajaxGet("/:owner/:repository/build/status")(referrersOnly { repository =>
