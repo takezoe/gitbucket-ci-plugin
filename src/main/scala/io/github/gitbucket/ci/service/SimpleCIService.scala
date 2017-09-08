@@ -37,11 +37,10 @@ object BuildManager {
     }.start()
   }
 
-  // TODO Manage running job status
   private def runBuild(job: BuildJob): Unit = {
-    runningJob.set(Some(job))
-
     val startTime = System.currentTimeMillis
+    runningJob.set(Some(job.copy(startTime = Some(startTime))))
+
     val sb = new StringBuilder()
 
     val exitValue = try {
@@ -90,7 +89,7 @@ object BuildManager {
 
 }
 
-case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, setting: BuildSetting)
+case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, startTime: Option[Long], setting: BuildSetting)
 
 trait SimpleCIService {
 
@@ -120,7 +119,7 @@ trait SimpleCIService {
       case seq => seq.max
     }) + 1
 
-    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, setting))
+    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, setting))
   }
 
   def getRunningJob(userName: String, repositoryName: String): Option[BuildJob] = {

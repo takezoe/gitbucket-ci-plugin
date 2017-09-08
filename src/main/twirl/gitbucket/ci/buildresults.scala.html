@@ -37,7 +37,7 @@
           <td>@job.buildNumber</td>
           <td><span class="badge bg-yellow">Running</span></td>
           <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
-          <td></td>
+          <td>@job.startTime.map { startTime => @datetime(new java.util.Date(startTime)) }</td>
           <td></td>
           <td></td>
         </tr>
