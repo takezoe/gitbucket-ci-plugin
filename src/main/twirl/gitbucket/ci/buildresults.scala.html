@@ -9,7 +9,8 @@
       @if(isEditable){
         <div class="head" style="height: 24px;">
           <div class="pull-right">
-            <input type="button" id="run-build" class="btn btn-sm btn-success" value="Run build" :disabled="running || waiting">
+            <input type="button" id="run-build" class="btn btn-sm btn-success" value="Run build"
+                   v-on:click="runBuild()" :disabled="running || waiting">
           </div>
         </div>
       }
@@ -23,7 +24,10 @@
           <th>Duration</th>
         </tr>
         <tr v-for="job in jobs">
-          <td>{{job.buildNumber}}</td>
+          <td>
+            <a v-if="job.status != 'waiting'" v-on:click="showOutputDialog(job)" href="javascript:void(0);">{{job.buildNumber}}</a>
+            <span v-if="job.status == 'waiting'">{{job.buildNumber}}</span>
+          </td>
           <td>
             <span v-if="job.status == 'waiting'" class="badge bg-gray">Waiting</span>
             <span v-if="job.status == 'running'" class="badge bg-yellow">Running</span>
@@ -37,48 +41,6 @@
         </tr>
       </table>
     </div>
-    @*
-    <table class="table table-bordered">
-      <tr>
-        <th>#</th>
-        <th>Status</th>
-        <th>Commit</th>
-        <th>Start time</th>
-        <th>End time</th>
-        <th>Duration</th>
-      </tr>
-      @queuedJobs.map { job =>
-        <tr id="job-@job.buildNumber">
-          <td>@job.buildNumber</td>
-          <td><span class="badge bg-gray">Waiting</span></td>
-          <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-      }
-      @runningJob.map { job =>
-        <tr>
-          <td><a href="javascript:showJobOutput(@job.buildNumber, 'running');">@job.buildNumber</a></td>
-          <td><span class="badge bg-yellow">Running</span></td>
-          <td><a href="@url(repository)/commit/@job.sha"><span class="monospace">@job.sha.substring(0, 7)</span></a></td>
-          <td>@job.startTime.map { startTime => @datetime(new java.util.Date(startTime)) }</td>
-          <td></td>
-          <td></td>
-        </tr>
-      }
-      @buildResults.map { buildResult =>
-        <tr>
-          <td><a href="javascript:showJobOutput(@buildResult.buildNumber, '@if(buildResult.success){success} else {failure}');">@buildResult.buildNumber</a></td>
-          <td>@if(buildResult.success){ <span class="badge bg-green">Success</span> } else { <span class="badge bg-red">Failure</span> }</td>
-          <td><a href="@url(repository)/commit/@buildResult.sha"><span class="monospace">@buildResult.sha.substring(0, 7)</span></a></td>
-          <td>@datetime(new java.util.Date(buildResult.start))</td>
-          <td>@datetime(new java.util.Date(buildResult.end))</td>
-          <td>@((buildResult.end - buildResult.start) / 1000)sec</td>
-        </tr>
-      }
-    </table>
-    *@
   }
 }
 <!-- Modal -->
@@ -105,28 +67,37 @@ var app = new Vue({
     jobs: [],
     running: false,
     waiting: false
+  },
+  created: function(){
+    updateStatus(true);
+  },
+  methods: {
+    runBuild: function(){
+      $.post('@url(repository)/build/run', function(){
+        updateStatus(false);
+      });
+    },
+    showOutputDialog: function(job){
+      var title = '#' + job.buildNumber + ' ';
+      if(job.status == 'success'){
+        title = title + '<span class="badge bg-green">Success</span>';
+      } else if(job.status == 'failure'){
+        title = title + '<span class="badge bg-red">Failure</span>';
+      } else if(job.status == 'running'){
+        title = title + '<span class="badge bg-yellow">Running</span>';
+      }
+
+      $('.modal-title').html(title);
+
+      $('.modal-body').html('<img src="@assets("/common/images/indicator.gif")"> Loading...');
+      $('#modal').modal('show');
+
+      $.get('@url(repository)/build/' + buildNumber, function(data){
+        $('.modal-body').html($('<pre style="background-color: black; color: white;">').html(data));
+      });
+    }
   }
 });
-
-function showJobOutput(buildNumber, status){
-  var title = '#' + buildNumber + ' ';
-  if(status == 'success'){
-    title = title + '<span class="badge bg-green">Success</span>';
-  } else if(status == 'failure'){
-    title = title + '<span class="badge bg-red">Failure</span>';
-  } else if(status == 'running'){
-    title = title + '<span class="badge bg-yellow">Running</span>';
-  }
-
-  $('.modal-title').html(title);
-
-  $('.modal-body').html('<img src="@assets("/common/images/indicator.gif")"> Loading...');
-  $('#modal').modal('show');
-
-  $.get('@url(repository)/build/' + buildNumber, function(data){
-    $('.modal-body').html($('<pre style="background-color: black; color: white;">').html(data));
-  });
-}
 
 function updateStatus(loop){
   $.get('@url(repository)/build/status', function(data){
@@ -147,13 +118,4 @@ function updateStatus(loop){
     }
   });
 }
-updateStatus(true);
-
-$(function(){
-  $('#run-build').click(function(){
-    $.post('@url(repository)/build/run', function(){
-      updateStatus(false);
-    });
-  });
-});
 </script>
