@@ -1,7 +1,4 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  buildResults: Seq[io.github.gitbucket.ci.service.BuildResult],
-  runningJob: Option[io.github.gitbucket.ci.service.BuildJob],
-  queuedJobs: Seq[io.github.gitbucket.ci.service.BuildJob],
   isEditable: Boolean,
   info: Option[Any])(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._

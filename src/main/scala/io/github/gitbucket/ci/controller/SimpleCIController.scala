@@ -2,7 +2,6 @@ package io.github.gitbucket.ci.controller
 
 import java.io.ByteArrayOutputStream
 
-import gitbucket.core.api.JsonFormat.{apiPathSerializer, jsonFormats}
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
@@ -14,8 +13,6 @@ import org.eclipse.jgit.api.Git
 import org.fusesource.jansi.HtmlAnsiOutputStream
 import org.json4s.jackson.Serialization
 import org.scalatra.Ok
-import org.json4s.{DefaultFormats, Formats}
-import org.scalatra.json._
 
 class SimpleCIController extends ControllerBase
   with SimpleCIService with AccountService with RepositoryService
@@ -23,9 +20,6 @@ class SimpleCIController extends ControllerBase
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
     gitbucket.ci.html.buildresults(repository,
-      getBuildResults(repository.owner, repository.name).reverse,
-      getRunningJob(repository.owner, repository.name),
-      getQueuedJobs(repository.owner, repository.name),
       hasDeveloperRole(repository.owner, repository.name, context.loginAccount),
       None)
   })
@@ -98,15 +92,15 @@ class SimpleCIController extends ControllerBase
     }
   }
 
-  get("/helloworld"){
-    getRepository("root", "test").map { repository =>
-      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
-        JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-          runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
-        }
-      }
-    }
-    Ok()
-  }
+//  get("/helloworld"){
+//    getRepository("root", "test").map { repository =>
+//      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+//        JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
+//          runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
+//        }
+//      }
+//    }
+//    Ok()
+//  }
 
 }
