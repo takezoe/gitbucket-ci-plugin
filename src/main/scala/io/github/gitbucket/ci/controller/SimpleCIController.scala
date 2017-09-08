@@ -22,7 +22,9 @@ class SimpleCIController extends ControllerBase
     gitbucket.ci.html.buildresults(repository,
       getBuildResults(repository.owner, repository.name).reverse,
       getRunningJob(repository.owner, repository.name),
-      getQueuedJobs(repository.owner, repository.name), None)
+      getQueuedJobs(repository.owner, repository.name),
+      hasDeveloperRole(repository.owner, repository.name, context.loginAccount),
+      None)
   })
 
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>

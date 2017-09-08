@@ -2,17 +2,20 @@
   buildResults: Seq[io.github.gitbucket.ci.service.BuildResult],
   runningJob: Option[io.github.gitbucket.ci.service.BuildJob],
   queuedJobs: Seq[io.github.gitbucket.ci.service.BuildJob],
+  isEditable: Boolean,
   info: Option[Any])(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main("Build", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
-    <div class="head" style="height: 24px;">
-      <div class="pull-right">
-        <form method="POST" action="@url(repository)/build/run">
-          <input type="submit" class="btn btn-sm btn-success" value="Run build" @if(runningJob.nonEmpty || queuedJobs.nonEmpty){disabled}>
-        </form>
+    @if(isEditable){
+      <div class="head" style="height: 24px;">
+        <div class="pull-right">
+          <form method="POST" action="@url(repository)/build/run">
+            <input type="submit" class="btn btn-sm btn-success" value="Run build" @if(runningJob.nonEmpty || queuedJobs.nonEmpty){disabled}>
+          </form>
+        </div>
       </div>
-    </div>
+    }
     <table class="table table-bordered">
       <tr>
         <th>#</th>
