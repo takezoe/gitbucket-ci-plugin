@@ -32,7 +32,7 @@ class SimpleCIController extends ControllerBase
       getBuildResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map { result => (result.buildNumber, if(result.success) "success" else "failure") }
-    }.map { case (buildNumbe, status) =>
+    }.map { case (buildNumber, status) =>
       gitbucket.ci.html.buildoutput(repository, buildNumber, status)
     } getOrElse NotFound()
   })
@@ -42,29 +42,29 @@ class SimpleCIController extends ControllerBase
 
     getRunningJob(repository.owner, repository.name).collect { case (job, sb) if(job.buildNumber == buildNumber) =>
       contentType = formats("json")
-      Map(
-        "status" -> "running",
-        "output" -> colorize(sb.toString)
-      )
+      JobOutput("running", colorize(sb.toString))
     } orElse {
       getBuildResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map  { result =>
           contentType = formats("json")
-          Map(
-            "status" -> (if(result.success) "success" else "failure"),
-            "output" -> colorize(result.output)
-          )
+          JobOutput(if(result.success) "success" else "failure", colorize(result.output))
         }
     } getOrElse NotFound()
   })
 
-  post("/:owner/:repository/build/run")(writableUsersOnly { repository =>
+  ajaxPost("/:owner/:repository/build/run")(writableUsersOnly { repository =>
     using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
       JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
         runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
       }
     }
+    Ok()
+  })
+
+  ajaxPost("/:owner/:repository/build/kill/:buildNumber")(writableUsersOnly { repository =>
+    val buildNumber = params("buildNumber").toLong
+    killBuild(repository.owner, repository.name, buildNumber)
     Ok()
   })
 
@@ -108,6 +108,7 @@ class SimpleCIController extends ControllerBase
     Serialization.write(queuedJobs ++ runningJob ++ finishedJobs)(jsonFormats)
   })
 
+  case class JobOutput(status: String, output: String)
   case class JobStatus(buildNumber: Long, status: String, sha: String, startTime: String, endTime: String, duration: String)
 
   @throws[java.io.IOException]
@@ -119,16 +120,5 @@ class SimpleCIController extends ControllerBase
       new String(os.toByteArray, "UTF-8")
     }
   }
-
-//  get("/helloworld"){
-//    getRepository("root", "test").map { repository =>
-//      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
-//        JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-//          runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
-//        }
-//      }
-//    }
-//    Ok()
-//  }
 
 }

@@ -11,6 +11,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
 
 import scala.sys.process._
+import scala.util.control.ControlThrowable
 
 object BuildManager {
 
@@ -18,6 +19,10 @@ object BuildManager {
   val buildSettings = new ConcurrentHashMap[(String, String), BuildSetting]()
   val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
   val runningJob = new AtomicReference[Option[(BuildJob, StringBuffer)]](None)
+
+  // TODO
+  val killed = new AtomicReference[Boolean](false)
+  val runningProcess = new AtomicReference[Option[Process]](None)
 
   val queue = new LinkedBlockingQueue[BuildJob]()
 
@@ -42,6 +47,7 @@ object BuildManager {
     val startTime = System.currentTimeMillis
 
     val sb = new StringBuffer()
+    killed.set(false)
     runningJob.set(Some((job.copy(startTime = Some(startTime)), sb)))
 
     val exitValue = try {
@@ -50,13 +56,26 @@ object BuildManager {
         FileUtils.deleteDirectory(dir)
       }
 
+      if(killed.get() == true){
+        throw new BuildJobKillException()
+      }
+
       using(Git.cloneRepository()
         .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
         .setDirectory(dir).call()) { git =>
 
+        if(killed.get() == true){
+          throw new BuildJobKillException()
+        }
+
         git.checkout().setName(job.sha).call()
 
+        if(killed.get() == true){
+          throw new BuildJobKillException()
+        }
+
         val process = Process(job.setting.script, dir).run(new BuildProcessLogger(sb))
+        runningProcess.set(Some(process))
 
         while (process.isAlive()) {
           Thread.sleep(1000)
@@ -70,8 +89,12 @@ object BuildManager {
         e.printStackTrace()
         -1
       }
+      case e: ControlThrowable =>
+        -1
     } finally {
+      killed.set(false)
       runningJob.set(None)
+      runningProcess.set(None)
     }
 
     val endTime = System.currentTimeMillis
@@ -89,6 +112,9 @@ object BuildManager {
   }
 
 }
+
+// Used to abort build job immediately
+class BuildJobKillException extends ControlThrowable
 
 case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, startTime: Option[Long], setting: BuildSetting)
 
@@ -121,6 +147,17 @@ trait SimpleCIService {
     }) + 1
 
     BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, setting))
+  }
+
+  def killBuild(userName: String, repositoryName: String, buildNumber: Long): Unit = {
+    getRunningJob(userName, repositoryName).foreach { case (job, sb) =>
+      if(job.buildNumber == buildNumber){
+        BuildManager.killed.set(true)
+        BuildManager.runningProcess.get().foreach { process =>
+          process.destroy()
+        }
+      }
+    }
   }
 
   def getRunningJob(userName: String, repositoryName: String): Option[(BuildJob, StringBuffer)] = {

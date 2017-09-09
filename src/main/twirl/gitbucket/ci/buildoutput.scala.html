@@ -6,6 +6,10 @@
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
       <div class="head" style="height: 24px;">
+        <div class="pull-right">
+          <input type="button" id="kill-build" class="btn btn-sm btn-danger" value="Kill build"
+                 v-on:click="killBuild()" :disabled="status != 'running'">
+        </div>
         <a href="@url(repository)/build">Build history</a> &gt; #@buildNumber
         @if(status == "success"){
           <span class="badge bg-green">Success</span>
@@ -34,6 +38,14 @@ var app = new Vue({
   },
   created: function(){
     fetchJobOutput();
+  },
+  methods: {
+    killBuild: function(){
+      console.log('Kill!!');
+      $.post('@url(repository)/build/kill/@buildNumber', function(){
+        // TODO
+      });
+    }
   }
 });
 
