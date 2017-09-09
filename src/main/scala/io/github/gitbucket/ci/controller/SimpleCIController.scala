@@ -25,9 +25,9 @@ class SimpleCIController extends ControllerBase
 
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
-    getRunningJob(repository.owner, repository.name)
+    getRunningJobs(repository.owner, repository.name)
       .find { case (job, _) => job.buildNumber == buildNumber }
-      .map { case (job, _) => (job.buildNumber, "running")
+      .map  { case (job, _) => (job.buildNumber, "running")
     }.orElse {
       getBuildResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
@@ -40,9 +40,11 @@ class SimpleCIController extends ControllerBase
   get("/:owner/:repository/build/output/:buildNumber")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
 
-    getRunningJob(repository.owner, repository.name).collect { case (job, sb) if(job.buildNumber == buildNumber) =>
-      contentType = formats("json")
-      JobOutput("running", colorize(sb.toString))
+    getRunningJobs(repository.owner, repository.name)
+      .find { case (job, sb) => job.buildNumber == buildNumber }
+      .map  { case (job, sb) =>
+        contentType = formats("json")
+        JobOutput("running", colorize(sb.toString))
     } orElse {
       getBuildResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
@@ -82,7 +84,7 @@ class SimpleCIController extends ControllerBase
       )
     }
 
-    val runningJob = getRunningJob(repository.owner, repository.name).map { case (job, _) =>
+    val runningJobs = getRunningJobs(repository.owner, repository.name).map { case (job, _) =>
       JobStatus(
         buildNumber = job.buildNumber,
         status      = "running",
@@ -91,7 +93,7 @@ class SimpleCIController extends ControllerBase
         endTime     = "",
         duration    = ""
       )
-    }.toSeq
+    }
 
     val finishedJobs = getBuildResults(repository.owner, repository.name).map { job =>
       JobStatus(
@@ -105,7 +107,7 @@ class SimpleCIController extends ControllerBase
     }
 
     contentType = formats("json")
-    Serialization.write(queuedJobs ++ runningJob ++ finishedJobs)(jsonFormats)
+    Serialization.write((queuedJobs ++ runningJobs ++ finishedJobs).sortBy(_.buildNumber * -1))(jsonFormats)
   })
 
   case class JobOutput(status: String, output: String)

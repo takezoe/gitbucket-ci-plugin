@@ -1,120 +1,30 @@
 package io.github.gitbucket.ci.service
 
-import java.io.File
-import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue}
-
-import gitbucket.core.util.Directory.getRepositoryDir
-import gitbucket.core.util.SyntaxSugars.using
-import org.apache.commons.io.FileUtils
-import org.apache.commons.lang3.exception.ExceptionUtils
-import org.eclipse.jgit.api.Git
-
+import java.util.concurrent._
 import scala.sys.process._
-import scala.util.control.ControlThrowable
 
 object BuildManager {
 
-  val MaxBuildPerProject = 10
+  val MaxParallelBuilds = 4
+  val MaxBuildsPerProject = 10
+
   val buildSettings = new ConcurrentHashMap[(String, String), BuildSetting]()
   val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
-  val runningJob = new AtomicReference[Option[(BuildJob, StringBuffer)]](None)
-
-  // TODO
-  val killed = new AtomicReference[Boolean](false)
-  val runningProcess = new AtomicReference[Option[Process]](None)
 
   val queue = new LinkedBlockingQueue[BuildJob]()
+  val threads = Range(0, MaxParallelBuilds).map { _ => new BuildJobThread(queue) }
 
   def queueBuildJob(job: BuildJob): Unit = {
     queue.add(job)
   }
 
   def startBuildManager(): Unit = {
-    // TODO interrupt this thread when GitBucket is shutdown
-    new Thread(){
-      override def run(): Unit = {
-        println("** Start BuildManager **")
-        while(true){
-          runBuild(queue.take())
-        }
-        println("** Exit BuildManager **")
-      }
-    }.start()
-  }
-
-  private def runBuild(job: BuildJob): Unit = {
-    val startTime = System.currentTimeMillis
-
-    val sb = new StringBuffer()
-    killed.set(false)
-    runningJob.set(Some((job.copy(startTime = Some(startTime)), sb)))
-
-    val exitValue = try {
-      val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
-      if (dir.exists()) {
-        FileUtils.deleteDirectory(dir)
-      }
-
-      if(killed.get() == true){
-        throw new BuildJobKillException()
-      }
-
-      using(Git.cloneRepository()
-        .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
-        .setDirectory(dir).call()) { git =>
-
-        if(killed.get() == true){
-          throw new BuildJobKillException()
-        }
-
-        git.checkout().setName(job.sha).call()
-
-        if(killed.get() == true){
-          throw new BuildJobKillException()
-        }
-
-        val process = Process(job.setting.script, dir).run(new BuildProcessLogger(sb))
-        runningProcess.set(Some(process))
-
-        while (process.isAlive()) {
-          Thread.sleep(1000)
-        }
-
-        process.exitValue()
-      }
-    } catch {
-      case e: Exception => {
-        sb.append(ExceptionUtils.getStackTrace(e))
-        e.printStackTrace()
-        -1
-      }
-      case e: ControlThrowable =>
-        -1
-    } finally {
-      killed.set(false)
-      runningJob.set(None)
-      runningProcess.set(None)
+    threads.foreach { thread =>
+      thread.start()
     }
-
-    val endTime = System.currentTimeMillis
-
-    val result = BuildResult(job.userName, job.repositoryName, job.sha, job.buildNumber, exitValue == 0, startTime, endTime, sb.toString)
-
-    val results = Option(buildResults.get((job.userName, job.repositoryName))).getOrElse(Nil)
-    BuildManager.buildResults.put((job.userName, job.repositoryName),
-      (if (results.length >= MaxBuildPerProject) results.tail else results) :+ result
-    )
-
-    println("Build number: " + job.buildNumber)
-    println("Total: " + (endTime - startTime) + "msec")
-    println("Finish build with exit code: " + exitValue)
   }
 
 }
-
-// Used to abort build job immediately
-class BuildJobKillException extends ControlThrowable
 
 case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, startTime: Option[Long], setting: BuildSetting)
 
@@ -150,20 +60,21 @@ trait SimpleCIService {
   }
 
   def killBuild(userName: String, repositoryName: String, buildNumber: Long): Unit = {
-    getRunningJob(userName, repositoryName).foreach { case (job, sb) =>
-      if(job.buildNumber == buildNumber){
-        BuildManager.killed.set(true)
-        BuildManager.runningProcess.get().foreach { process =>
-          process.destroy()
-        }
+    BuildManager.threads.find { thread =>
+      thread.runningJob.get.exists { job =>
+        job.userName == userName && job.repositoryName == repositoryName && job.buildNumber == buildNumber
       }
+    }.foreach { thread =>
+      thread.kill()
     }
   }
 
-  def getRunningJob(userName: String, repositoryName: String): Option[(BuildJob, StringBuffer)] = {
-    BuildManager.runningJob.get.filter { case (job, sb) =>
-      job.userName == userName && job.repositoryName == repositoryName
-    }
+  def getRunningJobs(userName: String, repositoryName: String): Seq[(BuildJob, StringBuffer)] = {
+    BuildManager.threads
+      .map { thread => (thread, thread.runningJob.get) }
+      .collect { case (thread, Some(job)) if(job.userName == userName && job.repositoryName == repositoryName) =>
+        (job, thread.sb)
+      }
   }
 
   def getQueuedJobs(userName: String, repositoryName: String): Seq[BuildJob] = {
