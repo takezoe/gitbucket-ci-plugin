@@ -5,14 +5,15 @@
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
-      @if(isEditable){
-        <div class="head" style="height: 24px;">
+      <div class="head" style="height: 24px;">
+        @if(isEditable){
           <div class="pull-right">
             <input type="button" id="run-build" class="btn btn-sm btn-success" value="Run build"
                    v-on:click="runBuild()" :disabled="running || waiting">
           </div>
-        </div>
-      }
+        }
+        Build history
+      </div>
       <table class="table table-bordered">
         <tr>
           <th>#</th>

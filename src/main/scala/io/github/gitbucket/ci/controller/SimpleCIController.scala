@@ -27,13 +27,13 @@ class SimpleCIController extends ControllerBase
     val buildNumber = params("buildNumber").toLong
     getRunningJob(repository.owner, repository.name)
       .find { case (job, _) => job.buildNumber == buildNumber }
-      .map { case (job, _) => (job.buildNumber, job.sha, "running")
+      .map { case (job, _) => (job.buildNumber, "running")
     }.orElse {
       getBuildResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
-        .map { result => (result.buildNumber, result.sha, if(result.success) "success" else "failure") }
-    }.map { case (buildNumbe, sha, status) =>
-      gitbucket.ci.html.buildoutput(repository, buildNumber, sha, status)
+        .map { result => (result.buildNumber, if(result.success) "success" else "failure") }
+    }.map { case (buildNumbe, status) =>
+      gitbucket.ci.html.buildoutput(repository, buildNumber, status)
     } getOrElse NotFound()
   })
 

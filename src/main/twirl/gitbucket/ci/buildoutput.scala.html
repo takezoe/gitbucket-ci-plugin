@@ -1,12 +1,12 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  buildNumber: Long, sha: String, status: String)(implicit context: gitbucket.core.controller.Context)
+  buildNumber: Long, status: String)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main("Build", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
-      <h2>
-        Build #@buildNumber @sha
+      <div class="head" style="height: 24px;">
+        <a href="@url(repository)/build">Build history</a> &gt; #@buildNumber
         @if(status == "success"){
           <span class="badge bg-green">Success</span>
         }
@@ -18,7 +18,7 @@
           <span v-if="status == 'failure'" class="badge bg-red">Failure</span>
           <span v-if="status == 'running'" class="badge bg-yellow">Running</span>
         }
-      </h2>
+      </div>
       <pre id="output" style="background-color: black; color: white;" v-html="output"></pre>
       <span v-if="loading"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
     </div>
