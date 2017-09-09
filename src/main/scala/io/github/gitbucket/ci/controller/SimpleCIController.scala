@@ -6,7 +6,7 @@ import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
-import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator, StringUtil, WritableUsersAuthenticator}
+import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator, WritableUsersAuthenticator}
 import gitbucket.core.util.Implicits._
 import io.github.gitbucket.ci.service.{BuildSetting, SimpleCIService}
 import org.eclipse.jgit.api.Git
@@ -39,26 +39,22 @@ class SimpleCIController extends ControllerBase
 
   get("/:owner/:repository/build/output/:buildNumber")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toLong
-    getBuildResult(repository.owner, repository.name, buildNumber).map { buildResult =>
-      colorize(StringUtil.escapeHtml(buildResult.output))
-    } getOrElse NotFound()
-  })
 
-  get("/:owner/:repository/build/output/:buildNumber/:from")(referrersOnly { repository =>
-    val buildNumber = params("buildNumber").toLong
-    val from = params("from").toInt
     getRunningJob(repository.owner, repository.name).collect { case (job, sb) if(job.buildNumber == buildNumber) =>
-      sb.toString.drop(from)
+      contentType = formats("json")
+      Map(
+        "status" -> "running",
+        "output" -> colorize(sb.toString)
+      )
     } orElse {
       getBuildResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map  { result =>
-          val output = result.output.drop(from)
-          if(output.isEmpty){
-            NotFound()
-          } else {
-            output
-          }
+          contentType = formats("json")
+          Map(
+            "status" -> (if(result.success) "success" else "failure"),
+            "output" -> colorize(result.output)
+          )
         }
     } getOrElse NotFound()
   })

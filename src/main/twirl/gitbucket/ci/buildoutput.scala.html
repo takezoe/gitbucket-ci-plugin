@@ -6,7 +6,7 @@
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
       <h2>
-        #@buildNumber @sha
+        Build #@buildNumber @sha
         @if(status == "success"){
           <span class="badge bg-green">Success</span>
         }
@@ -19,7 +19,7 @@
           <span v-if="status == 'running'" class="badge bg-yellow">Running</span>
         }
       </h2>
-      <pre id="output" style="background-color: black; color: white;">{{output}}</pre>
+      <pre id="output" style="background-color: black; color: white;" v-html="output"></pre>
       <span v-if="loading"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
     </div>
   }
@@ -33,36 +33,19 @@ var app = new Vue({
     loading: true
   },
   created: function(){
-    @if(status == "running"){
-      fetchRunningJobOutput(0);
-    } else {
-      fetchFinishedJobOutput();
-    }
+    fetchJobOutput();
   }
 });
 
-function fetchRunningJobOutput(from){
-  $.get('@url(repository)/build/output/@buildNumber/' + from, function(data){
-    app.$data.output = app.$data.output + data;
-    setTimeout(function(){
-      fetchRunningJobOutput(from + data.length);
-    }, 1000)
-  }).fail(function(res){
-    $.get('@url(repository)/build/status', function(data){
-      for(var i = 0; i < data.length; i++){
-        if(data[i].buildNumber == @buildNumber){
-          app.$data.status = data[i].status;
-        }
-      }
-      app.$data.loading = false;
-    });
-  });
-}
-
-function fetchFinishedJobOutput(){
+function fetchJobOutput(){
   $.get('@url(repository)/build/output/@buildNumber', function(data){
-    app.$data.output = data;
-    app.$data.loading = false;
+    app.$data.output = data.output;
+    if(data.status == 'running'){
+      setTimeout(function(){ fetchJobOutput(); }, 1000)
+    } else {
+      app.$data.status = data.status;
+      app.$data.loading = false;
+    }
   });
 }
 </script>

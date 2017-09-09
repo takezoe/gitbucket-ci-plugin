@@ -3,6 +3,7 @@ package io.github.gitbucket.ci.service
 import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue}
+
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
 import org.apache.commons.io.FileUtils
@@ -140,12 +141,12 @@ class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
 
   override def err(s: => String): Unit = {
     sb.append(s + "\n")
-    println(s) // TODO Debug
+    println(s)
   }
 
   override def out(s: => String): Unit = {
     sb.append(s + "\n")
-    println(s) // TODO Debug
+    println(s)
   }
 
   override def buffer[T](f: => T): T = ???
