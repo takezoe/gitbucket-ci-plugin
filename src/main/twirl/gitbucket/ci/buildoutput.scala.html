@@ -1,7 +1,7 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
   buildNumber: Long, status: String)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
-@gitbucket.core.html.main("Build", Some(repository)) {
+@gitbucket.core.html.main(s"Build #${buildNumber} - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
