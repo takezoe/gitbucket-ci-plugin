@@ -3,7 +3,7 @@ import gitbucket.core.plugin.{Link, ReceiveHook}
 import gitbucket.core.service.RepositoryService
 import io.github.gitbucket.ci.controller.SimpleCIController
 import io.github.gitbucket.ci.hook.SimpleCICommitHook
-import io.github.gitbucket.ci.service.BuildManager
+import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.solidbase.migration.LiquibaseMigration
 import io.github.gitbucket.solidbase.model.Version
 
@@ -28,6 +28,10 @@ class Plugin extends gitbucket.core.plugin.Plugin {
 
   override val repositoryMenus = Seq(
     (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build"))
+  )
+
+  override val repositorySettingTabs = Seq(
+    (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", s"settings/build"))
   )
 
   override val receiveHooks: Seq[ReceiveHook] = Seq(new SimpleCICommitHook())

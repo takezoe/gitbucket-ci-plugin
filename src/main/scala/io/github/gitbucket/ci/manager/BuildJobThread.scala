@@ -1,22 +1,21 @@
-package io.github.gitbucket.ci.service
+package io.github.gitbucket.ci.manager
 
 import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicReference
 
-import gitbucket.core.controller.Context
 import gitbucket.core.model.CommitState
-import gitbucket.core.model.Session
+import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.service.{AccountService, CommitStatusService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
-import gitbucket.core.model.Profile.profile.blockingApi._
+import io.github.gitbucket.ci.service._
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
 
-import scala.sys.process.Process
+import scala.sys.process.{Process, ProcessLogger}
 import scala.util.control.ControlThrowable
 
 
@@ -73,7 +72,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread with C
         }
 
         // run script
-        val process = Process(job.setting.script, dir).run(new BuildProcessLogger(sb))
+        val process = Process(job.config.buildScript, dir).run(new BuildProcessLogger(sb))
         runningProcess.set(Some(process))
 
         while (process.isAlive()) {
@@ -130,3 +129,19 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread with C
 
 // Used to abort build job immediately in BuildJobThread
 private class BuildJobKillException extends ControlThrowable
+
+class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
+
+  override def err(s: => String): Unit = {
+    sb.append(s + "\n")
+    println(s)
+  }
+
+  override def out(s: => String): Unit = {
+    sb.append(s + "\n")
+    println(s)
+  }
+
+  override def buffer[T](f: => T): T = ???
+
+}

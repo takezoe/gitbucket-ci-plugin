@@ -8,14 +8,14 @@ trait CIConfigComponent { self: gitbucket.core.model.Profile =>
 
   class CIConfigs(tag: Tag) extends Table[CIConfig](tag, "CI_CONFIG") {
     val userName = column[String]("USER_NAME", O PrimaryKey)
-    val fullName = column[String]("FULL_NAME")
-    val buildScript = column[String]("BUILD_CONFIG")
-    def * = (userName, fullName, buildScript) <> (CIConfig.tupled, CIConfig.unapply)
+    val repositoryName = column[String]("REPOSITORY_NAME")
+    val buildScript = column[String]("BUILD_SCRIPT")
+    def * = (userName, repositoryName, buildScript) <> (CIConfig.tupled, CIConfig.unapply)
   }
 }
 
 case class CIConfig(
   userName: String,
-  fullName: String,
+  repositoryName: String,
   buildScript: String
 )

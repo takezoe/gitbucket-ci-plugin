@@ -1,44 +1,22 @@
 package io.github.gitbucket.ci.service
 
-import java.util.concurrent._
+import io.github.gitbucket.ci.manager.BuildManager
+import io.github.gitbucket.ci.model._
+import io.github.gitbucket.ci.model.Profile._
+import gitbucket.core.model.Profile.profile.blockingApi._
 import scala.sys.process._
 
-object BuildManager {
-
-  val MaxParallelBuilds = 4
-  val MaxBuildsPerProject = 10
-
-  val buildSettings = new ConcurrentHashMap[(String, String), BuildSetting]()
-  val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
-
-  val queue = new LinkedBlockingQueue[BuildJob]()
-  val threads = Range(0, MaxParallelBuilds).map { _ => new BuildJobThread(queue) }
-
-  def queueBuildJob(job: BuildJob): Unit = {
-    queue.add(job)
-  }
-
-  def startBuildManager(): Unit = {
-    threads.foreach { thread =>
-      thread.start()
-    }
-  }
-
-}
-
-case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, startTime: Option[Long], setting: BuildSetting)
+case class BuildJob(userName: String, repositoryName: String, buildNumber: Long, sha: String, startTime: Option[Long], config: CIConfig)
 
 trait SimpleCIService {
 
-  def saveBuildSetting(userName: String, repositoryName: String, setting: Option[BuildSetting]): Unit = {
-    setting match {
-      case Some(setting) => BuildManager.buildSettings.put((userName, repositoryName), setting)
-      case None => BuildManager.buildSettings.remove((userName, repositoryName))
-    }
+  def saveCIConfig(userName: String, repositoryName: String, config: Option[CIConfig])(implicit s: Session): Unit = {
+    CIConfigs.filter(t => (t.userName === userName.bind) && (t.repositoryName === repositoryName.bind)).delete
+    config.foreach { config => CIConfigs += config }
   }
 
-  def loadBuildSetting(userName: String, repositoryName: String): Option[BuildSetting] = {
-    Option(BuildManager.buildSettings.get((userName, repositoryName)))
+  def loadCIConfig(userName: String, repositoryName: String)(implicit s: Session): Option[CIConfig] = {
+    CIConfigs.filter(t => (t.userName === userName.bind) && (t.repositoryName === repositoryName.bind)).firstOption
   }
 
   def getBuildResults(userName: String, repositoryName: String): Seq[BuildResult] = {
@@ -49,7 +27,7 @@ trait SimpleCIService {
     getBuildResults(userName, repositoryName).find(_.buildNumber == buildNumber)
   }
 
-  def runBuild(userName: String, repositoryName: String, sha: String, setting: BuildSetting): Unit = {
+  def runBuild(userName: String, repositoryName: String, sha: String, setting: CIConfig): Unit = {
     val results = Option(BuildManager.buildResults.get((userName, repositoryName))).getOrElse(Nil)
     val buildNumber = (results.map(_.buildNumber) match {
       case Nil => 0
@@ -101,7 +79,7 @@ class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
 
 }
 
-case class BuildSetting(userName: String, repositoryName: String, script: String)
+//case class BuildSetting(userName: String, repositoryName: String, script: String)
 
 case class BuildResult(userName: String, repositoryName: String, sha: String,
   buildNumber: Long, success: Boolean, start: Long, end: Long, output: String)

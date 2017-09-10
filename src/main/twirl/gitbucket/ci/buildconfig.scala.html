@@ -1,0 +1,38 @@
+@(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
+  config: Option[io.github.gitbucket.ci.model.CIConfig],
+  info: Option[Any])(implicit context: gitbucket.core.controller.Context)
+@import gitbucket.core.view.helpers._
+@gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
+  @gitbucket.core.html.menu("settings", repository){
+    @gitbucket.core.settings.html.menu("build", repository){
+      @gitbucket.core.helper.html.information(info)
+      <form action="@url(repository)/settings/build" method="POST" validate="true">
+        <div class="panel panel-default">
+          <div class="panel-heading strong">Build</div>
+          <div class="panel-body">
+            <fieldset class="form-group">
+              <label class="checkbox" for="enableBuild">
+                <input type="checkbox" id="enableBuild" name="enableBuild"@if(config.isDefined){ checked}/>
+                Enable build
+              </label>
+            </fieldset>
+            <label><span class="strong">Build script</span></label>
+            <fieldset>
+              <textarea id="buildScript" name="buildScript" class="form-control" style="height: 100px;">@config.map(_.buildScript)</textarea>
+            </fieldset>
+          </div>
+        </div>
+        <div class="align-right" style="margin-top: 20px;">
+          <input type="submit" class="btn btn-success" value="Apply changes">
+        </div>
+      </form>
+    }
+  }
+}
+<script>
+$(function(){
+  $('#enableBuild').change(function(){
+    $('#buildScript').prop('disabled', !$(this).prop('checked'));
+  }).change();
+});
+</script>

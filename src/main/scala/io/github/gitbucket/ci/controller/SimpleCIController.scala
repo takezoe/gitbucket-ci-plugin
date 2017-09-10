@@ -6,17 +6,29 @@ import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
-import gitbucket.core.util.{JGitUtil, ReferrerAuthenticator, WritableUsersAuthenticator}
+import gitbucket.core.util.{JGitUtil, OwnerAuthenticator, ReferrerAuthenticator, WritableUsersAuthenticator}
 import gitbucket.core.util.Implicits._
-import io.github.gitbucket.ci.service.{BuildSetting, SimpleCIService}
+import io.github.gitbucket.ci.model.CIConfig
+import io.github.gitbucket.ci.service.SimpleCIService
+import io.github.gitbucket.scalatra.forms._
 import org.eclipse.jgit.api.Git
 import org.fusesource.jansi.HtmlAnsiOutputStream
 import org.json4s.jackson.Serialization
-import org.scalatra.Ok
+import org.scalatra.{BadRequest, Ok}
 
 class SimpleCIController extends ControllerBase
   with SimpleCIService with AccountService with RepositoryService
-  with ReferrerAuthenticator with WritableUsersAuthenticator {
+  with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator {
+
+  case class BuildConfigForm(
+    enableBuild: Boolean,
+    buildScript: Option[String]
+  )
+
+  val buildConfigForm = mapping(
+    "enableBuild" -> trim(label("Enable build", boolean())),
+    "buildScript" -> trim(label("Build script", optional(text())))
+  )(BuildConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
     gitbucket.ci.html.buildresults(repository,
@@ -56,12 +68,14 @@ class SimpleCIController extends ControllerBase
   })
 
   ajaxPost("/:owner/:repository/build/run")(writableUsersOnly { repository =>
-    using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
-      JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-        runBuild("root", "gitbucket", objectId.name, BuildSetting("root", "gitbucket", "sbt compile"))
+    loadCIConfig(repository.owner, repository.name).map { config =>
+      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+        JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
+          runBuild("root", "gitbucket", objectId.name, config)
+        }
       }
-    }
-    Ok()
+      Ok()
+    } getOrElse BadRequest()
   })
 
   ajaxPost("/:owner/:repository/build/kill/:buildNumber")(writableUsersOnly { repository =>
@@ -109,6 +123,22 @@ class SimpleCIController extends ControllerBase
     contentType = formats("json")
     Serialization.write((queuedJobs ++ runningJobs ++ finishedJobs).sortBy(_.buildNumber * -1))(jsonFormats)
   })
+
+  get("/:owner/:repository/settings/build")(ownerOnly { repository =>
+    gitbucket.ci.html.buildconfig(repository, loadCIConfig(repository.owner, repository.name), flash.get("info"))
+  })
+
+  post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
+    if(form.enableBuild){
+      // TODO buildScript is required!!
+      saveCIConfig(repository.owner, repository.name, Some(CIConfig(repository.owner, repository.name, form.buildScript.getOrElse(""))))
+    } else {
+      saveCIConfig(repository.owner, repository.name, None)
+    }
+    flash += "info" -> "Build configuration has been updated."
+    redirect(s"/${repository.owner}/${repository.name}/settings/build")
+  })
+
 
   case class JobOutput(status: String, output: String)
   case class JobStatus(buildNumber: Long, status: String, sha: String, startTime: String, endTime: String, duration: String)
