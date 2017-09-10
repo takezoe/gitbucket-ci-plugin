@@ -9,8 +9,6 @@ import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory
 import org.apache.commons.io.FileUtils
 
-import scala.sys.process._
-
 case class BuildJob(
   userName: String,
   repositoryName: String,
