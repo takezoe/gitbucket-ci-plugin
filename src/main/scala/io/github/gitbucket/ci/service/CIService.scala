@@ -137,19 +137,3 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     new java.io.File(dir, s"build/${result.buildNumber}")
   }
 }
-
-class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
-
-  override def err(s: => String): Unit = {
-    sb.append(s + "\n")
-    println(s)
-  }
-
-  override def out(s: => String): Unit = {
-    sb.append(s + "\n")
-    println(s)
-  }
-
-  override def buffer[T](f: => T): T = ???
-
-}
