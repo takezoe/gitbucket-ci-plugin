@@ -78,11 +78,11 @@ function updateStatus(loop){
       }
     }
     if(loop){
-      setTimeout(updateStatus, 10000);
+      setTimeout(function(){ updateStatus(true) }, 10000);
     }
   }).fail(function(){
     if(loop){
-      setTimeout(updateStatus, 60000);
+      setTimeout(function(){ updateStatus(true) }, 10000);
     }
   });
 }
