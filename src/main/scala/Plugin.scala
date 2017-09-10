@@ -1,8 +1,8 @@
 import gitbucket.core.controller.Context
 import gitbucket.core.plugin.{Link, ReceiveHook}
 import gitbucket.core.service.RepositoryService
-import io.github.gitbucket.ci.controller.SimpleCIController
-import io.github.gitbucket.ci.hook.SimpleCICommitHook
+import io.github.gitbucket.ci.controller.CIController
+import io.github.gitbucket.ci.hook.CICommitHook
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.solidbase.migration.LiquibaseMigration
 import io.github.gitbucket.solidbase.model.Version
@@ -23,7 +23,7 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
 
   override val controllers = Seq(
-    "/*" -> new SimpleCIController()
+    "/*" -> new CIController()
   )
 
   override val repositoryMenus = Seq(
@@ -34,7 +34,7 @@ class Plugin extends gitbucket.core.plugin.Plugin {
     (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", s"settings/build"))
   )
 
-  override val receiveHooks: Seq[ReceiveHook] = Seq(new SimpleCICommitHook())
+  override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())
 
   BuildManager.startBuildManager()
 }

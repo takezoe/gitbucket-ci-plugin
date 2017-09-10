@@ -8,7 +8,7 @@ import org.eclipse.jgit.transport.{ReceiveCommand, ReceivePack}
 import profile.api._
 
 
-class SimpleCICommitHook extends ReceiveHook with SimpleCIService with RepositoryService with AccountService {
+class CICommitHook extends ReceiveHook with SimpleCIService with RepositoryService with AccountService {
 
   override def postReceive(owner: String, repository: String, receivePack: ReceivePack, command: ReceiveCommand, pusher: String)
                           (implicit session: Session): Unit = {

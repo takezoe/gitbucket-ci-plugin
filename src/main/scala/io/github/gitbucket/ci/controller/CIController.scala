@@ -16,7 +16,7 @@ import org.fusesource.jansi.HtmlAnsiOutputStream
 import org.json4s.jackson.Serialization
 import org.scalatra.{BadRequest, Ok}
 
-class SimpleCIController extends ControllerBase
+class CIController extends ControllerBase
   with SimpleCIService with AccountService with RepositoryService
   with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator {
 
