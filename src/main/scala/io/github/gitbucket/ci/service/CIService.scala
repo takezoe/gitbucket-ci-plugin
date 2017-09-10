@@ -11,7 +11,14 @@ import org.apache.commons.io.FileUtils
 
 import scala.sys.process._
 
-case class BuildJob(userName: String, repositoryName: String, buildNumber: Int, sha: String, startTime: Option[Long], config: CIConfig)
+case class BuildJob(
+  userName: String,
+  repositoryName: String,
+  buildNumber: Int,
+  sha: String, startTime:
+  Option[java.util.Date],
+  config: CIConfig
+)
 
 trait SimpleCIService { self: AccountService with RepositoryService =>
 

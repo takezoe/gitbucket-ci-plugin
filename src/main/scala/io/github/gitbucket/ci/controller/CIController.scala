@@ -109,7 +109,7 @@ class CIController extends ControllerBase
         buildNumber = job.buildNumber,
         status      = "running",
         sha         = job.sha,
-        startTime   = job.startTime.map { startTime => datetime(new java.util.Date(startTime)) }.getOrElse(""),
+        startTime   = job.startTime.map { startTime => datetime(startTime) }.getOrElse(""),
         endTime     = "",
         duration    = ""
       )

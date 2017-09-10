@@ -30,10 +30,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
   override def run(): Unit = {
     while(true){
-      val job = queue.take()
-      initState(Some(job))
-      runBuild(job)
-      initState(None)
+      runBuild(queue.take())
     }
   }
 
@@ -45,94 +42,93 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   }
 
   private def runBuild(job: BuildJob): Unit = {
-    val startTime = new java.util.Date() //System.currentTimeMillis
+    val startTime = new java.util.Date()
+    initState(Some(job.copy(startTime = Some(startTime))))
 
-    val exitValue = try {
-      val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
-      if (dir.exists()) {
-        FileUtils.deleteDirectory(dir)
-      }
-
-      if(killed.get() == true){
-        throw new BuildJobKillException()
-      }
-
-      // git clone
-      using(Git.cloneRepository()
-        .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
-        .setDirectory(dir).call()) { git =>
+    try {
+      val exitValue = try {
+        val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
+        if (dir.exists()) {
+          FileUtils.deleteDirectory(dir)
+        }
 
         if(killed.get() == true){
           throw new BuildJobKillException()
         }
 
-        // git checkout
-        git.checkout().setName(job.sha).call()
+        // git clone
+        using(Git.cloneRepository()
+          .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
+          .setDirectory(dir).call()) { git =>
 
-        if(killed.get() == true){
-          throw new BuildJobKillException()
+          if(killed.get() == true){
+            throw new BuildJobKillException()
+          }
+
+          // git checkout
+          git.checkout().setName(job.sha).call()
+
+          if(killed.get() == true){
+            throw new BuildJobKillException()
+          }
+
+          // run script
+          val process = Process(job.config.buildScript, dir).run(new BuildProcessLogger(sb))
+          runningProcess.set(Some(process))
+
+          while (process.isAlive()) {
+            Thread.sleep(1000)
+          }
+
+          process.exitValue()
         }
-
-        // run script
-        val process = Process(job.config.buildScript, dir).run(new BuildProcessLogger(sb))
-        runningProcess.set(Some(process))
-
-        while (process.isAlive()) {
-          Thread.sleep(1000)
+      } catch {
+        case e: Exception => {
+          sb.append(ExceptionUtils.getStackTrace(e))
+          e.printStackTrace()
+          -1
         }
-
-        process.exitValue()
+        case e: ControlThrowable =>
+          -1
       }
-    } catch {
-      case e: Exception => {
-        sb.append(ExceptionUtils.getStackTrace(e))
-        e.printStackTrace()
-        -1
-      }
-      case e: ControlThrowable =>
-        -1
-    }
 
-    val endTime = new java.util.Date() //System.currentTimeMillis
+      val endTime = new java.util.Date()
 
-    // TODO This should be implemented in the BuildManager side?
-//    val results = Option(BuildManager.buildResults.get((job.userName, job.repositoryName))).getOrElse(Nil)
-//    BuildManager.buildResults.put((job.userName, job.repositoryName),
-//      (if (results.length >= BuildManager.MaxBuildsPerProject) results.tail else results) :+ result
-//    )
+      // Create or update commit status
+      Database() withTransaction { implicit session =>
+        saveCIResult(
+          CIResult(
+            userName       = job.userName,
+            repositoryName = job.repositoryName,
+            buildNumber    = job.buildNumber,
+            sha            = job.sha,
+            startTime      = startTime,
+            endTime        = endTime,
+            status         = if(exitValue == 0) "success" else "failure"
+          ),
+          sb.toString
+        )
 
-    // Create or update commit status
-    Database() withTransaction { implicit session =>
-      // TODO Delete build result if it overs MaxBuildsPerProject
-      saveCIResult(
-        CIResult(
+        createCommitStatus(
           userName       = job.userName,
           repositoryName = job.repositoryName,
-          buildNumber    = job.buildNumber,
           sha            = job.sha,
-          startTime      = startTime,
-          endTime        = endTime,
-          status         = if(exitValue == 0) "success" else "failure"
-        ),
-        sb.toString
-      )
+          context        = "gitbucket-ci",
+          state          = if(exitValue == 0) CommitState.SUCCESS else CommitState.FAILURE,
+          targetUrl      = None,
+          description    = None,
+          now            = endTime,
+          creator        = getAccountByUserName("root").get // TODO
+        )
+      }
 
-      createCommitStatus(
-        userName       = job.userName,
-        repositoryName = job.repositoryName,
-        sha            = job.sha,
-        context        = "gitbucket-ci",
-        state          = if(exitValue == 0) CommitState.SUCCESS else CommitState.FAILURE,
-        targetUrl      = None,
-        description    = None,
-        now            = endTime,
-        creator        = getAccountByUserName("root").get // TODO
-      )
+      println("Build number: " + job.buildNumber)
+      println("Total: " + (endTime.getTime - startTime.getTime) + "msec")
+      println("Finish build with exit code: " + exitValue)
+
+    } finally {
+      initState(None)
     }
-
-    println("Build number: " + job.buildNumber)
-    println("Total: " + (endTime.getTime - startTime.getTime) + "msec")
-    println("Finish build with exit code: " + exitValue)
   }
 
   def kill(): Unit = {
