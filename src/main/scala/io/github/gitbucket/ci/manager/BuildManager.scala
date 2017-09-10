@@ -1,7 +1,7 @@
 package io.github.gitbucket.ci.manager
 
-import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue}
-import io.github.gitbucket.ci.service.{BuildJob, BuildResult}
+import java.util.concurrent.LinkedBlockingQueue
+import io.github.gitbucket.ci.service.BuildJob
 
 object BuildManager {
 
@@ -9,7 +9,7 @@ object BuildManager {
   val MaxBuildsPerProject = 10
 
 //  val buildSettings = new ConcurrentHashMap[(String, String), BuildSetting]()
-  val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
+//  val buildResults = new ConcurrentHashMap[(String, String), Seq[BuildResult]]()
 
   val queue = new LinkedBlockingQueue[BuildJob]()
   val threads = Range(0, MaxParallelBuilds).map { _ => new BuildJobThread(queue) }

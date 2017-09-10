@@ -36,21 +36,22 @@ class SimpleCIController extends ControllerBase
   })
 
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
-    val buildNumber = params("buildNumber").toLong
+    val buildNumber = params("buildNumber").toInt
+
     getRunningJobs(repository.owner, repository.name)
       .find { case (job, _) => job.buildNumber == buildNumber }
       .map  { case (job, _) => (job.buildNumber, "running")
     }.orElse {
-      getBuildResults(repository.owner, repository.name)
+      getCIResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
-        .map { result => (result.buildNumber, if(result.success) "success" else "failure") }
+        .map { result => (result.buildNumber, result.status) }
     }.map { case (buildNumber, status) =>
       gitbucket.ci.html.buildoutput(repository, buildNumber, status)
     } getOrElse NotFound()
   })
 
   get("/:owner/:repository/build/output/:buildNumber")(referrersOnly { repository =>
-    val buildNumber = params("buildNumber").toLong
+    val buildNumber = params("buildNumber").toInt
 
     getRunningJobs(repository.owner, repository.name)
       .find { case (job, sb) => job.buildNumber == buildNumber }
@@ -58,11 +59,11 @@ class SimpleCIController extends ControllerBase
         contentType = formats("json")
         JobOutput("running", colorize(sb.toString))
     } orElse {
-      getBuildResults(repository.owner, repository.name)
+      getCIResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map  { result =>
           contentType = formats("json")
-          JobOutput(if(result.success) "success" else "failure", colorize(result.output))
+          JobOutput(result.status, colorize(getCIResultOutput(result)))
         }
     } getOrElse NotFound()
   })
@@ -79,7 +80,7 @@ class SimpleCIController extends ControllerBase
   })
 
   ajaxPost("/:owner/:repository/build/kill/:buildNumber")(writableUsersOnly { repository =>
-    val buildNumber = params("buildNumber").toLong
+    val buildNumber = params("buildNumber").toInt
     killBuild(repository.owner, repository.name, buildNumber)
     Ok()
   })
@@ -109,14 +110,14 @@ class SimpleCIController extends ControllerBase
       )
     }
 
-    val finishedJobs = getBuildResults(repository.owner, repository.name).map { job =>
+    val finishedJobs = getCIResults(repository.owner, repository.name).map { result =>
       JobStatus(
-        buildNumber = job.buildNumber,
-        status      = if(job.success) "success" else "failure",
-        sha         = job.sha,
-        startTime   = datetime(new java.util.Date(job.start)),
-        endTime     = datetime(new java.util.Date(job.end)),
-        duration    = ((job.end - job.start) / 1000) + "sec"
+        buildNumber = result.buildNumber,
+        status      = result.status,
+        sha         = result.sha,
+        startTime   = datetime(result.startTime),
+        endTime     = datetime(result.endTime),
+        duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + "sec"
       )
     }
 
@@ -141,7 +142,7 @@ class SimpleCIController extends ControllerBase
 
 
   case class JobOutput(status: String, output: String)
-  case class JobStatus(buildNumber: Long, status: String, sha: String, startTime: String, endTime: String, duration: String)
+  case class JobStatus(buildNumber: Int, status: String, sha: String, startTime: String, endTime: String, duration: String)
 
   @throws[java.io.IOException]
   private def colorize(text: String) = {
