@@ -32,10 +32,10 @@ class CIController extends ControllerBase
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
     if(loadCIConfig(repository.owner, repository.name).isDefined){
-      gitbucket.ci.html.buildresults(repository,
+      gitbucket.ci.html.results(repository,
         hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
     } else {
-      gitbucket.ci.html.buildguide(repository,
+      gitbucket.ci.html.guide(repository,
         hasOwnerRole(repository.owner, repository.name, context.loginAccount))
     }
   })
@@ -51,7 +51,7 @@ class CIController extends ControllerBase
         .find { result => result.buildNumber == buildNumber }
         .map { result => (result.buildNumber, result.status) }
     }.map { case (buildNumber, status) =>
-      gitbucket.ci.html.buildoutput(repository, buildNumber, status)
+      gitbucket.ci.html.output(repository, buildNumber, status)
     } getOrElse NotFound()
   })
 
@@ -131,7 +131,7 @@ class CIController extends ControllerBase
   })
 
   get("/:owner/:repository/settings/build")(ownerOnly { repository =>
-    gitbucket.ci.html.buildconfig(repository, loadCIConfig(repository.owner, repository.name), flash.get("info"))
+    gitbucket.ci.html.config(repository, loadCIConfig(repository.owner, repository.name), flash.get("info"))
   })
 
   post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
