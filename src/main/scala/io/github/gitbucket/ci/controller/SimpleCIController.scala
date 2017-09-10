@@ -31,8 +31,13 @@ class SimpleCIController extends ControllerBase
   )(BuildConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
-    gitbucket.ci.html.buildresults(repository,
-      hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
+    if(loadCIConfig(repository.owner, repository.name).isDefined){
+      gitbucket.ci.html.buildresults(repository,
+        hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
+    } else {
+      gitbucket.ci.html.buildguide(repository,
+        hasOwnerRole(repository.owner, repository.name, context.loginAccount))
+    }
   })
 
   get("/:owner/:repository/build/:buildNumber")(referrersOnly { repository =>
@@ -72,7 +77,7 @@ class SimpleCIController extends ControllerBase
     loadCIConfig(repository.owner, repository.name).map { config =>
       using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-          runBuild("root", "gitbucket", objectId.name, config)
+          runBuild(repository.owner, repository.name, objectId.name, config)
         }
       }
       Ok()

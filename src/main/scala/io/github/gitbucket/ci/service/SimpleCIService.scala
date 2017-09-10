@@ -1,14 +1,19 @@
 package io.github.gitbucket.ci.service
 
+import gitbucket.core.model.{Account, Role}
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.ci.model._
 import io.github.gitbucket.ci.model.Profile._
 import gitbucket.core.model.Profile.profile.blockingApi._
+import gitbucket.core.service.{AccountService, RepositoryService}
+import gitbucket.core.util.Directory
+import org.apache.commons.io.FileUtils
+
 import scala.sys.process._
 
 case class BuildJob(userName: String, repositoryName: String, buildNumber: Int, sha: String, startTime: Option[Long], config: CIConfig)
 
-trait SimpleCIService {
+trait SimpleCIService { self: AccountService with RepositoryService =>
 
   def saveCIConfig(userName: String, repositoryName: String, config: Option[CIConfig])(implicit s: Session): Unit = {
     CIConfigs.filter { t =>
@@ -71,11 +76,58 @@ trait SimpleCIService {
   }
 
   def saveCIResult(result: CIResult, output: String)(implicit s: Session): Unit = {
+    // Delete older results
+    val results = getCIResults(result.userName, result.repositoryName).sortBy(_.buildNumber)
+    if (results.length >= BuildManager.MaxBuildsPerProject){
+      results.take(results.length - BuildManager.MaxBuildsPerProject + 1).foreach { result =>
+        // Delete from database
+        CIResults.filter { t =>
+          (t.userName       === result.userName.bind) &&
+          (t.repositoryName === result.repositoryName.bind) &&
+          (t.buildNumber    === result.buildNumber.bind)
+        }.delete
+
+        // Delete files
+        val buildDir = getBuildResultDir(result)
+        if(buildDir.exists){
+          FileUtils.deleteQuietly(buildDir)
+        }
+      }
+    }
+
+    // Insert new result
     CIResults += result
+
+    // Save result output as file
+    val buildDir = getBuildResultDir(result)
+    if(!buildDir.exists){
+      buildDir.mkdirs()
+    }
+    FileUtils.write(new java.io.File(buildDir, "output"), output, "UTF-8")
   }
 
   def getCIResultOutput(result: CIResult): String = {
-    ""
+    val buildDir = getBuildResultDir(result)
+    val file = new java.io.File(buildDir, "output")
+    if(file.exists){
+      FileUtils.readFileToString(file, "UTF-8")
+    } else ""
+  }
+
+  // TODO This method should be moved to RepositoryService.
+  def hasOwnerRole(owner: String, repository: String, loginAccount: Option[Account])(implicit s: Session): Boolean = {
+    loginAccount match {
+      case Some(a) if(a.isAdmin) => true
+      case Some(a) if(a.userName == owner) => true
+      case Some(a) if(getGroupMembers(owner).exists(_.userName == a.userName)) => true
+      case Some(a) if(getCollaboratorUserNames(owner, repository, Seq(Role.ADMIN)).contains(a.userName)) => true
+      case _ => false
+    }
+  }
+
+  private def getBuildResultDir(result: CIResult): java.io.File = {
+    val dir = Directory.getRepositoryDir(result.userName, result.repositoryName)
+    new java.io.File(dir, s"build/${result.buildNumber}")
   }
 }
 

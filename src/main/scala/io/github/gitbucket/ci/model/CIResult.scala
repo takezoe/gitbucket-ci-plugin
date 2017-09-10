@@ -10,9 +10,9 @@ trait CIResultComponent { self: gitbucket.core.model.Profile =>
     val userName = column[String]("USER_NAME", O PrimaryKey)
     val repositoryName = column[String]("REPOSITORY_NAME")
     val buildNumber = column[Int]("BUILD_NUMBER")
-    val sha = column[String]("FULL_NAME")
-    val startTime = column[java.util.Date]("START_DATE")
-    val endTime = column[java.util.Date]("END_DATE")
+    val sha = column[String]("SHA")
+    val startTime = column[java.util.Date]("START_TIME")
+    val endTime = column[java.util.Date]("END_TIME")
     val status = column[String]("STATUS")
     def * = (userName, repositoryName, buildNumber, sha, startTime, endTime, status) <> (CIResult.tupled, CIResult.unapply)
   }
