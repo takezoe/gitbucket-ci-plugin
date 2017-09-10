@@ -121,7 +121,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     } else ""
   }
 
-  // TODO This method should be moved to RepositoryService.
+  @deprecated("Use RepositoryService#hasOwnerRole instead.", "1.0.0")
   def hasOwnerRole(owner: String, repository: String, loginAccount: Option[Account])(implicit s: Session): Boolean = {
     loginAccount match {
       case Some(a) if(a.isAdmin) => true
