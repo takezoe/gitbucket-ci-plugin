@@ -4,8 +4,14 @@ import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicReference
 
+import gitbucket.core.controller.Context
+import gitbucket.core.model.CommitState
+import gitbucket.core.model.Session
+import gitbucket.core.service.{AccountService, CommitStatusService}
+import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
+import gitbucket.core.model.Profile.profile.blockingApi._
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
@@ -14,7 +20,7 @@ import scala.sys.process.Process
 import scala.util.control.ControlThrowable
 
 
-class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread {
+class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread with CommitStatusService with AccountService {
 
   val killed = new AtomicReference[Boolean](false)
   val runningProcess = new AtomicReference[Option[Process]](None)
@@ -95,6 +101,21 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread {
     BuildManager.buildResults.put((job.userName, job.repositoryName),
       (if (results.length >= BuildManager.MaxBuildsPerProject) results.tail else results) :+ result
     )
+
+    // Create or update commit status
+    Database() withTransaction { implicit session =>
+      createCommitStatus(
+        userName       = job.userName,
+        repositoryName = job.repositoryName,
+        sha            = job.sha,
+        context        = "gitbucket-ci",
+        state          = (if(exitValue == 0) CommitState.SUCCESS else CommitState.FAILURE),
+        targetUrl      = None,
+        description    = None,
+        now            = new java.util.Date(endTime),
+        creator        = getAccountByUserName("root").get // TODO
+      )
+    }
 
     println("Build number: " + job.buildNumber)
     println("Total: " + (endTime - startTime) + "msec")
