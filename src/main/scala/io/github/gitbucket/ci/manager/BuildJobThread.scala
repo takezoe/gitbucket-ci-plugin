@@ -27,7 +27,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
   private val logger = LoggerFactory.getLogger(classOf[BuildJobThread])
 
-  val killed = new AtomicReference[Boolean](false)
+  val cancelled = new AtomicReference[Boolean](false)
   val runningProcess = new AtomicReference[Option[Process]](None)
   val runningJob = new AtomicReference[Option[BuildJob]](None)
   val sb = new StringBuffer()
@@ -39,13 +39,13 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
         runBuild(queue.take())
       }
     } catch {
-      case _: InterruptedException => kill()
+      case _: InterruptedException => cancel()
     }
     logger.info("Stop BuildJobThread-" + this.getId)
   }
 
   private def initState(job: Option[BuildJob]): Unit = {
-    killed.set(false)
+    cancelled.set(false)
     runningProcess.set(None)
     runningJob.set(job)
     sb.setLength(0)
@@ -63,8 +63,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           FileUtils.deleteDirectory(dir)
         }
 
-        if(killed.get() == true){
-          throw new BuildJobKillException()
+        if(cancelled.get() == true){
+          throw new BuildJobCancelException()
         }
 
         sb.append(s"git clone ${job.userName}/${job.repositoryName}\n")
@@ -74,8 +74,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
           .setDirectory(dir).call()) { git =>
 
-          if(killed.get() == true){
-            throw new BuildJobKillException()
+          if(cancelled.get() == true){
+            throw new BuildJobCancelException()
           }
 
           sb.append(s"git checkout ${job.sha}\n")
@@ -83,8 +83,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           // git checkout
           git.checkout().setName(job.sha).call()
 
-          if(killed.get() == true){
-            throw new BuildJobKillException()
+          if(cancelled.get() == true){
+            throw new BuildJobCancelException()
           }
 
           // run script
@@ -108,7 +108,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           logger.error(s"${job.userName}/${job.repositoryName} #${job.buildNumber}", e)
           -1
         }
-        case e: ControlThrowable =>
+        case _: ControlThrowable =>
           -1
       }
 
@@ -153,8 +153,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     }
   }
 
-  def kill(): Unit = {
-    killed.set(true)
+  def cancel(): Unit = {
+    cancelled.set(true)
     runningProcess.get.foreach(_.destroy())
   }
 }
@@ -162,23 +162,19 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 /**
  * Used to abort build job immediately in BuildJobThread.
  */
-private class BuildJobKillException extends ControlThrowable
+private class BuildJobCancelException extends ControlThrowable
 
 /**
  * Used to capture output of the build process.
  */
 private class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
 
-  private val logger = LoggerFactory.getLogger(classOf[BuildProcessLogger])
-
   override def err(s: => String): Unit = {
     sb.append(s + "\n")
-    logger.info(s)
   }
 
   override def out(s: => String): Unit = {
     sb.append(s + "\n")
-    logger.info(s)
   }
 
   override def buffer[T](f: => T): T = ???

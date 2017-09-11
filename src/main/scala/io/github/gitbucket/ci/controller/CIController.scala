@@ -63,7 +63,8 @@ class CIController extends ControllerBase
         .find { result => result.buildNumber == buildNumber }
         .map { result => (result.buildNumber, result.status) }
     }.map { case (buildNumber, status) =>
-      gitbucket.ci.html.output(repository, buildNumber, status)
+      gitbucket.ci.html.output(repository, buildNumber, status,
+        hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
     } getOrElse NotFound()
   })
 
@@ -96,7 +97,7 @@ class CIController extends ControllerBase
     } getOrElse BadRequest()
   })
 
-  ajaxPost("/:owner/:repository/build/kill/run/:buildNumber")(writableUsersOnly { repository =>
+  ajaxPost("/:owner/:repository/build/restart/:buildNumber")(writableUsersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
     loadCIConfig(repository.owner, repository.name).flatMap { config =>
       getCIResult(repository.owner, repository.name, buildNumber).map { result =>
@@ -106,9 +107,9 @@ class CIController extends ControllerBase
     } getOrElse BadRequest()
   })
 
-  ajaxPost("/:owner/:repository/build/kill/:buildNumber")(writableUsersOnly { repository =>
+  ajaxPost("/:owner/:repository/build/cancel/:buildNumber")(writableUsersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
-    killBuild(repository.owner, repository.name, buildNumber)
+    cancelBuild(repository.owner, repository.name, buildNumber)
     Ok()
   })
 

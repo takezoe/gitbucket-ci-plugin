@@ -1,5 +1,5 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  buildNumber: Long, status: String)(implicit context: gitbucket.core.controller.Context)
+  buildNumber: Long, status: String, isEditable: Boolean)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @import io.github.gitbucket.ci.util.JobStatus
 @gitbucket.core.html.main(s"Build #${buildNumber} - ${repository.owner}/${repository.name}", Some(repository)) {
@@ -7,10 +7,12 @@
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
       <div class="head" style="height: 24px;">
-        <div class="pull-right">
-          <input type="button" class="btn btn-sm btn-success" value="Restart" v-if="status != 'running'">
-          <input type="button" class="btn btn-sm btn-danger" value="Kill build" v-on:click="killBuild()" v-if="status == 'running'">
-        </div>
+        @if(isEditable){
+          <div class="pull-right">
+            <input type="button" class="btn btn-sm btn-success" value="Restart build" v-on:click="restartBuild()" v-if="status != 'running'">
+            <input type="button" class="btn btn-sm btn-danger" value="Cancel build" v-on:click="cancelBuild()" v-if="status == 'running'">
+          </div>
+        }
         <a href="@url(repository)/build">Build history</a> &gt; #@buildNumber
         @if(status == JobStatus.Success){
           <span class="badge bg-green">Success</span>
@@ -41,9 +43,14 @@ var app = new Vue({
     fetchJobOutput();
   },
   methods: {
-    killBuild: function(){
-      $.post('@url(repository)/build/kill/@buildNumber', function(){
+    cancelBuild: function(){
+      $.post('@url(repository)/build/cancel/@buildNumber', function(){
         // TODO
+      });
+    },
+    restartBuild: function(){
+      $.post('@url(repository)/build/restart/@buildNumber', function(){
+        location.href = '@url(repository)/build';
       });
     }
   }

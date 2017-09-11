@@ -59,13 +59,13 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     buildNumber
   }
 
-  def killBuild(userName: String, repositoryName: String, buildNumber: Int): Unit = {
+  def cancelBuild(userName: String, repositoryName: String, buildNumber: Int): Unit = {
     BuildManager.threads.find { thread =>
       thread.runningJob.get.exists { job =>
         job.userName == userName && job.repositoryName == repositoryName && job.buildNumber == buildNumber
       }
     }.foreach { thread =>
-      thread.kill()
+      thread.cancel()
     }
   }
 
