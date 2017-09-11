@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import gitbucket.core.model.CommitState
 import gitbucket.core.model.Profile.profile.blockingApi._
-import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService}
+import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService, SystemSettingsService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
@@ -22,7 +22,7 @@ import scala.util.control.ControlThrowable
 
 
 class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
-  with CommitStatusService with AccountService with RepositoryService with SimpleCIService {
+  with CommitStatusService with AccountService with RepositoryService with SimpleCIService with SystemSettingsService {
 
   val killed = new AtomicReference[Boolean](false)
   val runningProcess = new AtomicReference[Option[Process]](None)
@@ -130,7 +130,9 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           sha            = job.sha,
           context        = CIUtils.ContextName,
           state          = if(exitValue == 0) CommitState.SUCCESS else CommitState.FAILURE,
-          targetUrl      = None,
+          targetUrl      = loadSystemSettings().baseUrl.map { baseUrl =>
+            s"${baseUrl}/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"
+          },
           description    = None,
           now            = endTime,
           creator        = job.creator

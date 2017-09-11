@@ -47,7 +47,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     }.firstOption
   }
 
-  def runBuild(userName: String, repositoryName: String, sha: String, creator: Account, config: CIConfig)(implicit s: Session): Unit = {
+  def runBuild(userName: String, repositoryName: String, sha: String, creator: Account, config: CIConfig)(implicit s: Session): Int = {
     // TODO Use id table to get a next build number?
     val buildNumber = (getCIResults(userName, repositoryName).map(_.buildNumber) match {
       case Nil => 0
@@ -55,6 +55,8 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     }) + 1
 
     BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, creator, config))
+
+    buildNumber
   }
 
   def killBuild(userName: String, repositoryName: String, buildNumber: Int): Unit = {
