@@ -83,8 +83,8 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
   def saveCIResult(result: CIResult, output: String)(implicit s: Session): Unit = {
     // Delete older results
     val results = getCIResults(result.userName, result.repositoryName).sortBy(_.buildNumber)
-    if (results.length >= BuildManager.MaxBuildsPerProject){
-      results.take(results.length - BuildManager.MaxBuildsPerProject + 1).foreach { result =>
+    if (results.length >= BuildManager.MaxBuildHistoryPerProject){
+      results.take(results.length - BuildManager.MaxBuildHistoryPerProject + 1).foreach { result =>
         // Delete from database
         CIResults.filter { t =>
           (t.userName       === result.userName.bind) &&

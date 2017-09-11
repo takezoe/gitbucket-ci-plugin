@@ -6,7 +6,7 @@ import io.github.gitbucket.ci.service.BuildJob
 object BuildManager {
 
   val MaxParallelBuilds = 4
-  val MaxBuildsPerProject = 10
+  val MaxBuildHistoryPerProject = 10
 
   val queue = new LinkedBlockingQueue[BuildJob]()
   val threads = Range(0, MaxParallelBuilds).map { _ => new BuildJobThread(queue) }
