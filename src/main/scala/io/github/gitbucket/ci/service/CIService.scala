@@ -12,10 +12,16 @@ import org.apache.commons.io.FileUtils
 case class BuildJob(
   userName: String,
   repositoryName: String,
+  buildUserName: String,
+  buildRepositoryName: String,
   buildNumber: Int,
+  buildBranch: String,
   sha: String,
+  commitMessage: String,
+  commitUserName: String,
+  pullRequestId: Option[Int],
   startTime: Option[java.util.Date],
-  creator: Account,
+  buildAuthor: Account,
   config: CIConfig
 )
 
@@ -47,16 +53,30 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     }.firstOption
   }
 
-  def runBuild(userName: String, repositoryName: String, sha: String, creator: Account, config: CIConfig)(implicit s: Session): Int = {
+  def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String, buildBranch: String,
+               sha: String, commitMessage: String, commitUserName: String, pullRequestId: Option[Int], buildAuthor: Account,
+               config: CIConfig)(implicit s: Session): Unit = {
     // TODO Use id table to get a next build number?
     val buildNumber = (getCIResults(userName, repositoryName).map(_.buildNumber) match {
       case Nil => 0
       case seq => seq.max
     }) + 1
 
-    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, creator, config))
-
-    buildNumber
+    BuildManager.queueBuildJob(BuildJob(
+      userName            = userName,
+      repositoryName      = repositoryName,
+      buildUserName       = buildUserName,
+      buildRepositoryName = buildRepositoryName,
+      buildNumber         = buildNumber,
+      buildBranch         = buildBranch,
+      sha                 = sha,
+      commitMessage       = commitMessage,
+      commitUserName      = commitUserName,
+      pullRequestId       = pullRequestId,
+      startTime           = None,
+      buildAuthor         = buildAuthor,
+      config              = config
+    ))
   }
 
   def cancelBuild(userName: String, repositoryName: String, buildNumber: Int): Unit = {

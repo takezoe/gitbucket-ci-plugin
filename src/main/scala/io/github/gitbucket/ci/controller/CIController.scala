@@ -90,7 +90,20 @@ class CIController extends ControllerBase
     loadCIConfig(repository.owner, repository.name).map { config =>
       using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-          runBuild(repository.owner, repository.name, objectId.name, context.loginAccount.get, config)
+          val revCommit = JGitUtil.getRevCommitFromId(git, objectId)
+          runBuild(
+            userName            = repository.owner,
+            repositoryName      = repository.name,
+            buildUserName       = repository.owner,
+            buildRepositoryName = repository.name,
+            buildBranch         = revision,
+            sha                 = objectId.name,
+            commitMessage       = revCommit.getShortMessage,
+            commitUserName      = revCommit.getCommitterIdent.getName, // TODO
+            pullRequestId       = None,
+            buildAuthor         = context.loginAccount.get,
+            config              = config
+          )
         }
       }
       Ok()
@@ -101,7 +114,19 @@ class CIController extends ControllerBase
     val buildNumber = params("buildNumber").toInt
     loadCIConfig(repository.owner, repository.name).flatMap { config =>
       getCIResult(repository.owner, repository.name, buildNumber).map { result =>
-        runBuild(repository.owner, repository.name, result.sha, context.loginAccount.get, config)
+        runBuild(
+          userName            = result.userName,
+          repositoryName      = result.repositoryName,
+          buildUserName       = result.buildUserName,
+          buildRepositoryName = result.buildRepositoryName,
+          buildBranch         = result.buildBranch,
+          sha                 = result.sha,
+          commitMessage       = result.commitMessage,
+          commitUserName      = result.commitUserName,
+          pullRequestId       = result.pullRequestId,
+          buildAuthor         = context.loginAccount.get,
+          config              = config
+        )
         Ok()
       }
     } getOrElse BadRequest()

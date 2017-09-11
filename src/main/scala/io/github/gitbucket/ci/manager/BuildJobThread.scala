@@ -55,6 +55,24 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     val startTime = new java.util.Date()
     initState(Some(job.copy(startTime = Some(startTime))))
 
+    val targetUrl = loadSystemSettings().baseUrl.map { baseUrl =>
+      s"${baseUrl}/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"
+    }
+
+    Database() withTransaction { implicit session =>
+      createCommitStatus(
+        userName       = job.userName,
+        repositoryName = job.repositoryName,
+        sha            = job.sha,
+        context        = CIUtils.ContextName,
+        state          = CommitState.PENDING,
+        targetUrl      = targetUrl,
+        description    = None,
+        now            = new java.util.Date(),
+        creator        = job.buildAuthor // TODO??
+      )
+    }
+
     try {
       val exitValue = try {
         val buildDir = CIUtils.getBuildDir(job.userName, job.repositoryName, job.buildNumber)
@@ -118,13 +136,20 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
       Database() withTransaction { implicit session =>
         saveCIResult(
           CIResult(
-            userName       = job.userName,
-            repositoryName = job.repositoryName,
-            buildNumber    = job.buildNumber,
-            sha            = job.sha,
-            startTime      = startTime,
-            endTime        = endTime,
-            status         = if(exitValue == 0) JobStatus.Success else JobStatus.Failure
+            userName            = job.userName,
+            repositoryName      = job.repositoryName,
+            buildUserName       = job.buildUserName,
+            buildRepositoryName = job.buildRepositoryName,
+            buildNumber         = job.buildNumber,
+            buildBranch         = job.buildBranch,
+            sha                 = job.sha,
+            commitMessage       = job.commitMessage,
+            commitUserName      = job.commitUserName,
+            pullRequestId       = job.pullRequestId,
+            startTime           = startTime,
+            endTime             = endTime,
+            status              = if(exitValue == 0) JobStatus.Success else JobStatus.Failure,
+            buildAuthor         = job.buildAuthor.userName
           ),
           sb.toString
         )
@@ -135,12 +160,10 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           sha            = job.sha,
           context        = CIUtils.ContextName,
           state          = if(exitValue == 0) CommitState.SUCCESS else CommitState.FAILURE,
-          targetUrl      = loadSystemSettings().baseUrl.map { baseUrl =>
-            s"${baseUrl}/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"
-          },
+          targetUrl      = targetUrl,
           description    = None,
           now            = endTime,
-          creator        = job.creator
+          creator        = job.buildAuthor // TODO??
         )
       }
 

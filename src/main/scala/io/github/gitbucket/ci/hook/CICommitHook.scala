@@ -1,12 +1,14 @@
 package io.github.gitbucket.ci.hook
 
-import gitbucket.core.model.CommitState
 import gitbucket.core.plugin.ReceiveHook
 import gitbucket.core.model.Profile._
 import gitbucket.core.service._
+import gitbucket.core.util.Directory.getRepositoryDir
+import gitbucket.core.util.JGitUtil
+import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.SimpleCIService
-import io.github.gitbucket.ci.util.CIUtils
+import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.{ReceiveCommand, ReceivePack}
 import profile.blockingApi._
 
@@ -18,10 +20,26 @@ class CICommitHook extends ReceiveHook
     val branch = command.getRefName.stripPrefix("refs/heads/")
     if(branch != command.getRefName){
       getRepository(owner, repository).foreach { repositoryInfo =>
-        loadCIConfig(owner, repository).foreach { config =>
+        using(Git.open(getRepositoryDir(owner, repository))) { git =>
           val sha = command.getNewId.name
+          val revCommit = JGitUtil.getRevCommitFromId(git, command.getNewId)
+
           if (repositoryInfo.repository.defaultBranch == branch) {
-            runBuild(owner, repository, sha, pusher, config)
+            loadCIConfig(owner, repository).foreach { config =>
+              runBuild(
+                userName            = owner,
+                repositoryName      = repository,
+                buildUserName       = owner,
+                buildRepositoryName = repository,
+                buildBranch         = branch,
+                sha                 = sha,
+                commitMessage       = revCommit.getShortMessage,
+                commitUserName      = revCommit.getCommitterIdent.getName, // TODO??
+                pullRequestId       = None,
+                pusher              = pusher,
+                config              = config
+              )
+            }
           } else {
             val pullRequests = PullRequests
               .join(Issues).on { (t1, t2) => t1.byPrimaryKey(t2.userName, t2.repositoryName, t2.issueId) }
@@ -31,8 +49,22 @@ class CICommitHook extends ReceiveHook
               }
               .list
 
-            if (pullRequests.nonEmpty) {
-              runBuild(owner, repository, sha, pusher, config)
+            pullRequests.headOption.foreach { case (pullRequest, issue) =>
+              loadCIConfig(pullRequest.userName, pullRequest.repositoryName).foreach { config =>
+                runBuild(
+                  userName            = pullRequest.userName,
+                  repositoryName      = pullRequest.repositoryName,
+                  buildUserName       = owner,
+                  buildRepositoryName = repository,
+                  buildBranch         = branch,
+                  sha                 = sha,
+                  commitMessage       = revCommit.getShortMessage,
+                  commitUserName      = revCommit.getCommitterIdent.getName, // TODO??
+                  pullRequestId       = Some(pullRequest.issueId),
+                  pusher              = pusher,
+                  config              = config
+                )
+              }
             }
           }
         }
@@ -40,23 +72,22 @@ class CICommitHook extends ReceiveHook
     }
   }
 
-  private def runBuild(owner: String, repository: String, sha: String, pusher: String, config: CIConfig)
-                      (implicit session: Session): Unit = {
+  private def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
+                       buildBranch: String, sha: String, commitMessage: String, commitUserName: String,
+                       pullRequestId: Option[Int], pusher: String, config: CIConfig)(implicit session: Session): Unit = {
     getAccountByUserName(pusher).foreach { pusherAccount =>
-      val buildNumber = runBuild(owner, repository, sha, pusherAccount, config)
-      val targetUrl = loadSystemSettings().baseUrl.map { baseUrl =>
-        s"${baseUrl}/${owner}/${repository}/build/${buildNumber}"
-      }
-      createCommitStatus(
-        userName       = owner,
-        repositoryName = repository,
-        sha            = sha,
-        context        = CIUtils.ContextName,
-        state          = CommitState.PENDING,
-        targetUrl      = targetUrl,
-        description    = None,
-        now            = new java.util.Date(),
-        creator        = pusherAccount
+      runBuild(
+        userName            = userName,
+        repositoryName      = repositoryName,
+        buildUserName       = buildUserName,
+        buildRepositoryName = buildRepositoryName,
+        buildBranch         = buildBranch,
+        sha                 = sha,
+        commitMessage       = commitMessage,
+        commitUserName      = commitUserName,
+        pullRequestId       = pullRequestId,
+        buildAuthor         = pusherAccount,
+        config              = config
       )
     }
   }

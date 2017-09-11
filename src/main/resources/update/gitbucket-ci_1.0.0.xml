@@ -17,11 +17,18 @@
   <createTable tableName="CI_RESULT">
     <column name="USER_NAME" type="varchar(100)" nullable="false"/>
     <column name="REPOSITORY_NAME" type="varchar(100)" nullable="false"/>
+    <column name="BUILD_USER_NAME" type="varchar(100)" nullable="false"/>
+    <column name="BUILD_REPOSITORY_NAME" type="varchar(100)" nullable="false"/>
     <column name="BUILD_NUMBER" type="int" nullable="false" />
+    <column name="BUILD_BRANCH" type="varchar(100)" nullable="false"/>
+    <column name="PULL_REQUEST_ID" type="int" nullable="true"/>
     <column name="SHA" type="varchar(100)" nullable="false"/>
+    <column name="COMMIT_MESSAGE" type="text" nullable="false"/>
+    <column name="COMMIT_USER_NAME" type="varchar(100)" nullable="false"/>
     <column name="START_TIME" type="datetime" nullable="false"/>
     <column name="END_TIME" type="datetime" nullable="false"/>
     <column name="STATUS" type="varchar(100)" nullable="false"/>
+    <column name="BUILD_AUTHOR" type="varchar(100)" nullable="false"/>
   </createTable>
 
   <addPrimaryKey constraintName="IDX_CI_RESULT_PK" tableName="CI_RESULT" columnNames="USER_NAME, REPOSITORY_NAME, BUILD_NUMBER"/>
