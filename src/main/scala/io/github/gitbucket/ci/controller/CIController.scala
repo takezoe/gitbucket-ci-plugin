@@ -77,7 +77,7 @@ class CIController extends ControllerBase
     loadCIConfig(repository.owner, repository.name).map { config =>
       using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
-          runBuild(repository.owner, repository.name, objectId.name, config)
+          runBuild(repository.owner, repository.name, objectId.name, context.loginAccount.get, config)
         }
       }
       Ok()
