@@ -56,6 +56,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           throw new BuildJobKillException()
         }
 
+        sb.append(s"git clone ${job.userName}/${job.repositoryName}\n")
+
         // git clone
         using(Git.cloneRepository()
           .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
@@ -65,6 +67,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
             throw new BuildJobKillException()
           }
 
+          sb.append(s"git checkout ${job.sha}\n")
+
           // git checkout
           git.checkout().setName(job.sha).call()
 
@@ -73,6 +77,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           }
 
           // run script
+          sb.append(job.config.buildScript + "\n")
           val process = Process(job.config.buildScript, dir).run(new BuildProcessLogger(sb))
           runningProcess.set(Some(process))
 
