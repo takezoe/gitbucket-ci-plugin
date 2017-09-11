@@ -138,7 +138,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
       }
 
       println("Build number: " + job.buildNumber)
-      println("Total: " + (endTime.getTime - startTime.getTime) + "msec")
+      println("Total: " + (endTime.getTime - startTime.getTime) + " msec")
       println("Finish build with exit code: " + exitValue)
 
     } finally {

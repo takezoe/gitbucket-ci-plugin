@@ -134,7 +134,7 @@ class CIController extends ControllerBase
         sha         = result.sha,
         startTime   = datetime(result.startTime),
         endTime     = datetime(result.endTime),
-        duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + "sec"
+        duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + " sec"
       )
     }
 
