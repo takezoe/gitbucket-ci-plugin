@@ -16,6 +16,7 @@ import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
+import org.slf4j.LoggerFactory
 
 import scala.sys.process.{Process, ProcessLogger}
 import scala.util.control.ControlThrowable
@@ -24,19 +25,23 @@ import scala.util.control.ControlThrowable
 class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   with CommitStatusService with AccountService with RepositoryService with SimpleCIService with SystemSettingsService {
 
+  private val logger = LoggerFactory.getLogger(classOf[BuildJobThread])
+
   val killed = new AtomicReference[Boolean](false)
   val runningProcess = new AtomicReference[Option[Process]](None)
   val runningJob = new AtomicReference[Option[BuildJob]]()
   val sb = new StringBuffer()
 
   override def run(): Unit = {
+    logger.info("Start BuildJobThread-" + this.getId)
     try {
       while(true){
         runBuild(queue.take())
       }
     } catch {
-      case _: InterruptedException => ()
+      case _: InterruptedException => kill()
     }
+    logger.info("Stop BuildJobThread-" + this.getId)
   }
 
   private def initState(job: Option[BuildJob]): Unit = {
@@ -100,7 +105,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
       } catch {
         case e: Exception => {
           sb.append(ExceptionUtils.getStackTrace(e))
-          e.printStackTrace()
+          logger.error(s"${job.userName}/${job.repositoryName} #${job.buildNumber}", e)
           -1
         }
         case e: ControlThrowable =>
@@ -139,9 +144,9 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
         )
       }
 
-      println("Build number: " + job.buildNumber)
-      println("Total: " + (endTime.getTime - startTime.getTime) + " msec")
-      println("Finish build with exit code: " + exitValue)
+      logger.info("Build number: " + job.buildNumber)
+      logger.info("Total: " + (endTime.getTime - startTime.getTime) + " msec")
+      logger.info("Finish build with exit code: " + exitValue)
 
     } finally {
       initState(None)
@@ -154,19 +159,26 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   }
 }
 
-// Used to abort build job immediately in BuildJobThread
+/**
+ * Used to abort build job immediately in BuildJobThread.
+ */
 private class BuildJobKillException extends ControlThrowable
 
-class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
+/**
+ * Used to capture output of the build process.
+ */
+private class BuildProcessLogger(sb: StringBuffer) extends ProcessLogger {
+
+  private val logger = LoggerFactory.getLogger(classOf[BuildProcessLogger])
 
   override def err(s: => String): Unit = {
     sb.append(s + "\n")
-    println(s)
+    logger.info(s)
   }
 
   override def out(s: => String): Unit = {
     sb.append(s + "\n")
-    println(s)
+    logger.info(s)
   }
 
   override def buffer[T](f: => T): T = ???

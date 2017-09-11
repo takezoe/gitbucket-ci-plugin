@@ -19,4 +19,8 @@ object BuildManager {
     threads.foreach(_.start())
   }
 
+  def shutdownBuildManager(): Unit = {
+    threads.foreach(_.interrupt())
+  }
+
 }

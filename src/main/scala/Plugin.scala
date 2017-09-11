@@ -1,6 +1,8 @@
+import javax.servlet.ServletContext
+
 import gitbucket.core.controller.Context
-import gitbucket.core.plugin.{Link, ReceiveHook}
-import gitbucket.core.service.RepositoryService
+import gitbucket.core.plugin.{Link, PluginRegistry, ReceiveHook}
+import gitbucket.core.service.{RepositoryService, SystemSettingsService}
 import io.github.gitbucket.ci.controller.CIController
 import io.github.gitbucket.ci.hook.CICommitHook
 import io.github.gitbucket.ci.manager.BuildManager
@@ -37,4 +39,9 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())
 
   BuildManager.startBuildManager()
+
+  override def shutdown(registry: PluginRegistry, context: ServletContext,
+                        settings: SystemSettingsService.SystemSettings): Unit = {
+    BuildManager.shutdownBuildManager()
+  }
 }

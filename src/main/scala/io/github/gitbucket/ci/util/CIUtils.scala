@@ -15,10 +15,6 @@ object CIUtils {
     new java.io.File(dir, s"build/${buildNumber}")
   }
 
-//  def getBuildWorkspaceDir(userName: String, repositoryName: String, buildNumber: Int): File = {
-//    new File(getBuildDir(userName, repositoryName, buildNumber), "workspace")
-//  }
-
   def colorize(text: String) = {
     using(new ByteArrayOutputStream()){ os =>
       using(new HtmlAnsiOutputStream(os)){ hos =>
