@@ -52,8 +52,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
     try {
       val exitValue = try {
-        // TODO
-        val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
+        val buildDir = CIUtils.getBuildDir(job.userName, job.repositoryName, job.buildNumber)
+        val dir = new File(buildDir, "workspace")
         if (dir.exists()) {
           FileUtils.deleteDirectory(dir)
         }
@@ -83,8 +83,12 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           }
 
           // run script
-          sb.append(job.config.buildScript + "\n")
-          val process = Process(job.config.buildScript, dir).run(new BuildProcessLogger(sb))
+          // TODO This works on only Linux or Mac...
+          val buildFile = new File(buildDir, "build.sh")
+          FileUtils.write(buildFile, "#!/bin/sh\n" + job.config.buildScript.replaceAll("\r\n", "\n"), "UTF-8")
+          buildFile.setExecutable(true)
+
+          val process = Process("../build.sh", dir).run(new BuildProcessLogger(sb))
           runningProcess.set(Some(process))
 
           while (process.isAlive()) {

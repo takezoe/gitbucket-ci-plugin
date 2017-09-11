@@ -95,7 +95,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
         }.delete
 
         // Delete files
-        val buildDir = CIUtils.getBuildResultDir(result)
+        val buildDir = CIUtils.getBuildDir(result.userName, result.repositoryName, result.buildNumber)
         if(buildDir.exists){
           FileUtils.deleteQuietly(buildDir)
         }
@@ -106,7 +106,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     CIResults += result
 
     // Save result output as file
-    val buildDir = CIUtils.getBuildResultDir(result)
+    val buildDir = CIUtils.getBuildDir(result.userName, result.repositoryName, result.buildNumber)
     if(!buildDir.exists){
       buildDir.mkdirs()
     }
@@ -114,7 +114,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
   }
 
   def getCIResultOutput(result: CIResult): String = {
-    val buildDir = CIUtils.getBuildResultDir(result)
+    val buildDir = CIUtils.getBuildDir(result.userName, result.repositoryName, result.buildNumber)
     val file = new java.io.File(buildDir, "output")
     if(file.exists){
       FileUtils.readFileToString(file, "UTF-8")
