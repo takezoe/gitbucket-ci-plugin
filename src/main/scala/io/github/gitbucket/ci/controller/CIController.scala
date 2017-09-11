@@ -96,6 +96,16 @@ class CIController extends ControllerBase
     } getOrElse BadRequest()
   })
 
+  ajaxPost("/:owner/:repository/build/kill/run/:buildNumber")(writableUsersOnly { repository =>
+    val buildNumber = params("buildNumber").toInt
+    loadCIConfig(repository.owner, repository.name).flatMap { config =>
+      getCIResult(repository.owner, repository.name, buildNumber).map { result =>
+        runBuild(repository.owner, repository.name, result.sha, context.loginAccount.get, config)
+        Ok()
+      }
+    } getOrElse BadRequest()
+  })
+
   ajaxPost("/:owner/:repository/build/kill/:buildNumber")(writableUsersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
     killBuild(repository.owner, repository.name, buildNumber)

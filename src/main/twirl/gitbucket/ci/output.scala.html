@@ -8,8 +8,8 @@
     <div id="app">
       <div class="head" style="height: 24px;">
         <div class="pull-right">
-          <input type="button" id="kill-build" class="btn btn-sm btn-danger" value="Kill build"
-                 v-on:click="killBuild()" :disabled="status != 'running'">
+          <input type="button" class="btn btn-sm btn-success" value="Restart" v-if="status != 'running'">
+          <input type="button" class="btn btn-sm btn-danger" value="Kill build" v-on:click="killBuild()" v-if="status == 'running'">
         </div>
         <a href="@url(repository)/build">Build history</a> &gt; #@buildNumber
         @if(status == JobStatus.Success){

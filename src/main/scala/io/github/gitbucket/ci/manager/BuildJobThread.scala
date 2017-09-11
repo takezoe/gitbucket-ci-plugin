@@ -29,7 +29,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
   val killed = new AtomicReference[Boolean](false)
   val runningProcess = new AtomicReference[Option[Process]](None)
-  val runningJob = new AtomicReference[Option[BuildJob]]()
+  val runningJob = new AtomicReference[Option[BuildJob]](None)
   val sb = new StringBuffer()
 
   override def run(): Unit = {
