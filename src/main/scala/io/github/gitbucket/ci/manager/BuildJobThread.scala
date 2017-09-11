@@ -12,6 +12,7 @@ import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
+import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
@@ -47,6 +48,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
     try {
       val exitValue = try {
+        // TODO
         val dir = new File(s"/tmp/${job.userName}-${job.repositoryName}-${job.buildNumber}")
         if (dir.exists()) {
           FileUtils.deleteDirectory(dir)
@@ -109,7 +111,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
             sha            = job.sha,
             startTime      = startTime,
             endTime        = endTime,
-            status         = if(exitValue == 0) "success" else "failure"
+            status         = if(exitValue == 0) JobStatus.Success else JobStatus.Failure
           ),
           sb.toString
         )
@@ -118,7 +120,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           userName       = job.userName,
           repositoryName = job.repositoryName,
           sha            = job.sha,
-          context        = "gitbucket-ci",
+          context        = CIUtils.ContextName,
           state          = if(exitValue == 0) CommitState.SUCCESS else CommitState.FAILURE,
           targetUrl      = None,
           description    = None,

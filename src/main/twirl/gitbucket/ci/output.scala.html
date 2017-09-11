@@ -1,6 +1,7 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
   buildNumber: Long, status: String)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
+@import io.github.gitbucket.ci.util.JobStatus
 @gitbucket.core.html.main(s"Build #${buildNumber} - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
@@ -11,16 +12,16 @@
                  v-on:click="killBuild()" :disabled="status != 'running'">
         </div>
         <a href="@url(repository)/build">Build history</a> &gt; #@buildNumber
-        @if(status == "success"){
+        @if(status == JobStatus.Success){
           <span class="badge bg-green">Success</span>
         }
-        @if(status == "failure"){
+        @if(status == JobStatus.Failure){
           <span class="badge bg-red">Failure</span>
         }
-        @if(status == "running"){
-          <span v-if="status == 'success'" class="badge bg-green">Success</span>
-          <span v-if="status == 'failure'" class="badge bg-red">Failure</span>
-          <span v-if="status == 'running'" class="badge bg-yellow">Running</span>
+        @if(status == JobStatus.Running){
+          <span v-if="status == '@JobStatus.Success'" class="badge bg-green">Success</span>
+          <span v-if="status == '@JobStatus.Failure'" class="badge bg-red">Failure</span>
+          <span v-if="status == '@JobStatus.Running'" class="badge bg-yellow">Running</span>
         }
       </div>
       <pre id="output" style="background-color: black; color: white;" v-html="output"></pre>
@@ -41,7 +42,6 @@ var app = new Vue({
   },
   methods: {
     killBuild: function(){
-      console.log('Kill!!');
       $.post('@url(repository)/build/kill/@buildNumber', function(){
         // TODO
       });
@@ -52,7 +52,7 @@ var app = new Vue({
 function fetchJobOutput(){
   $.get('@url(repository)/build/output/@buildNumber', function(data){
     app.$data.output = data.output;
-    if(data.status == 'running'){
+    if(data.status == '@JobStatus.Running'){
       setTimeout(function(){ fetchJobOutput(); }, 1000)
     } else {
       app.$data.status = data.status;

@@ -5,6 +5,7 @@ import gitbucket.core.plugin.ReceiveHook
 import gitbucket.core.model.Profile._
 import gitbucket.core.service._
 import io.github.gitbucket.ci.service.SimpleCIService
+import io.github.gitbucket.ci.util.CIUtils
 import org.eclipse.jgit.transport.{ReceiveCommand, ReceivePack}
 import profile.blockingApi._
 
@@ -37,7 +38,7 @@ class CICommitHook extends ReceiveHook
                   userName       = owner,
                   repositoryName = repository,
                   sha            = sha,
-                  context        = "gitbucket-ci",
+                  context        = CIUtils.ContextName,
                   state          = CommitState.PENDING,
                   targetUrl      = None,
                   description    = None,

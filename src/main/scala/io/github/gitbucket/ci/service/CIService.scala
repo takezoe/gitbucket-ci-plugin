@@ -6,7 +6,7 @@ import io.github.gitbucket.ci.model._
 import io.github.gitbucket.ci.model.Profile._
 import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.service.{AccountService, RepositoryService}
-import gitbucket.core.util.Directory
+import io.github.gitbucket.ci.util.CIUtils
 import org.apache.commons.io.FileUtils
 
 case class BuildJob(
@@ -95,7 +95,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
         }.delete
 
         // Delete files
-        val buildDir = getBuildResultDir(result)
+        val buildDir = CIUtils.getBuildResultDir(result)
         if(buildDir.exists){
           FileUtils.deleteQuietly(buildDir)
         }
@@ -106,7 +106,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     CIResults += result
 
     // Save result output as file
-    val buildDir = getBuildResultDir(result)
+    val buildDir = CIUtils.getBuildResultDir(result)
     if(!buildDir.exists){
       buildDir.mkdirs()
     }
@@ -114,7 +114,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
   }
 
   def getCIResultOutput(result: CIResult): String = {
-    val buildDir = getBuildResultDir(result)
+    val buildDir = CIUtils.getBuildResultDir(result)
     val file = new java.io.File(buildDir, "output")
     if(file.exists){
       FileUtils.readFileToString(file, "UTF-8")
@@ -132,8 +132,4 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     }
   }
 
-  private def getBuildResultDir(result: CIResult): java.io.File = {
-    val dir = Directory.getRepositoryDir(result.userName, result.repositoryName)
-    new java.io.File(dir, s"build/${result.buildNumber}")
-  }
 }

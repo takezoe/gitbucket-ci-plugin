@@ -1,7 +1,5 @@
 package io.github.gitbucket.ci.controller
 
-import java.io.ByteArrayOutputStream
-
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
@@ -10,9 +8,9 @@ import gitbucket.core.util.{JGitUtil, OwnerAuthenticator, ReferrerAuthenticator,
 import gitbucket.core.util.Implicits._
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.SimpleCIService
+import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import io.github.gitbucket.scalatra.forms._
 import org.eclipse.jgit.api.Git
-import org.fusesource.jansi.HtmlAnsiOutputStream
 import org.json4s.jackson.Serialization
 import org.scalatra.{BadRequest, Ok}
 
@@ -29,6 +27,20 @@ class CIController extends ControllerBase
     "enableBuild" -> trim(label("Enable build", boolean())),
     "buildScript" -> trim(label("Build script", optional(text())))
   )(BuildConfigForm.apply)
+
+  case class ApiJobOutput(
+    status: String,
+    output: String
+  )
+
+  case class ApiJobStatus(
+    buildNumber: Int,
+    status: String,
+    sha: String,
+    startTime: String,
+    endTime: String,
+    duration: String
+  )
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
     if(loadCIConfig(repository.owner, repository.name).isDefined){
@@ -62,13 +74,13 @@ class CIController extends ControllerBase
       .find { case (job, sb) => job.buildNumber == buildNumber }
       .map  { case (job, sb) =>
         contentType = formats("json")
-        JobOutput("running", colorize(sb.toString))
+        ApiJobOutput("running", CIUtils.colorize(sb.toString))
     } orElse {
       getCIResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map  { result =>
           contentType = formats("json")
-          JobOutput(result.status, colorize(getCIResultOutput(result)))
+          ApiJobOutput(result.status, CIUtils.colorize(getCIResultOutput(result)))
         }
     } getOrElse NotFound()
   })
@@ -94,9 +106,9 @@ class CIController extends ControllerBase
     import gitbucket.core.view.helpers._
 
     val queuedJobs = getQueuedJobs(repository.owner, repository.name).map { job =>
-      JobStatus(
+      ApiJobStatus(
         buildNumber = job.buildNumber,
-        status      = "waiting",
+        status      = JobStatus.Waiting,
         sha         = job.sha,
         startTime   = "",
         endTime     = "" ,
@@ -105,9 +117,9 @@ class CIController extends ControllerBase
     }
 
     val runningJobs = getRunningJobs(repository.owner, repository.name).map { case (job, _) =>
-      JobStatus(
+      ApiJobStatus(
         buildNumber = job.buildNumber,
-        status      = "running",
+        status      = JobStatus.Running,
         sha         = job.sha,
         startTime   = job.startTime.map { startTime => datetime(startTime) }.getOrElse(""),
         endTime     = "",
@@ -116,7 +128,7 @@ class CIController extends ControllerBase
     }
 
     val finishedJobs = getCIResults(repository.owner, repository.name).map { result =>
-      JobStatus(
+      ApiJobStatus(
         buildNumber = result.buildNumber,
         status      = result.status,
         sha         = result.sha,
@@ -144,19 +156,5 @@ class CIController extends ControllerBase
     flash += "info" -> "Build configuration has been updated."
     redirect(s"/${repository.owner}/${repository.name}/settings/build")
   })
-
-
-  case class JobOutput(status: String, output: String)
-  case class JobStatus(buildNumber: Int, status: String, sha: String, startTime: String, endTime: String, duration: String)
-
-  @throws[java.io.IOException]
-  private def colorize(text: String) = {
-    using(new ByteArrayOutputStream()){ os =>
-      using(new HtmlAnsiOutputStream(os)){ hos =>
-        hos.write(text.getBytes("UTF-8"))
-      }
-      new String(os.toByteArray, "UTF-8")
-    }
-  }
 
 }

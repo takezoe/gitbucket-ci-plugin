@@ -1,6 +1,7 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
   isEditable: Boolean)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
+@import io.github.gitbucket.ci.util.JobStatus
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
@@ -25,14 +26,14 @@
         </tr>
         <tr v-for="job in jobs">
           <td>
-            <a v-if="job.status != 'waiting'" :href="'@url(repository)/build/' + job.buildNumber">{{job.buildNumber}}</a>
-            <span v-if="job.status == 'waiting'">{{job.buildNumber}}</span>
+            <a v-if="job.status != '@JobStatus.Waiting'" :href="'@url(repository)/build/' + job.buildNumber">{{job.buildNumber}}</a>
+            <span v-if="job.status == '@JobStatus.Waiting'">{{job.buildNumber}}</span>
           </td>
           <td>
-            <span v-if="job.status == 'waiting'" class="badge bg-gray">Waiting</span>
-            <span v-if="job.status == 'running'" class="badge bg-yellow">Running</span>
-            <span v-if="job.status == 'success'" class="badge bg-green">Success</span>
-            <span v-if="job.status == 'failure'" class="badge bg-red">Failure</span>
+            <span v-if="job.status == '@JobStatus.Waiting'" class="badge bg-gray">Waiting</span>
+            <span v-if="job.status == '@JobStatus.Running'" class="badge bg-yellow">Running</span>
+            <span v-if="job.status == '@JobStatus.Success'" class="badge bg-green">Success</span>
+            <span v-if="job.status == '@JobStatus.Failure'" class="badge bg-red">Failure</span>
           </td>
           <td><a :href="'@url(repository)/commit/' + job.sha"><span class="monospace">{{job.sha.substring(0, 7)}}</span></a></td>
           <td>{{job.startTime}}</td>
@@ -70,10 +71,10 @@ function updateStatus(loop){
     app.$data.running = false;
     app.$data.waiting = false;
     for(var i = 0; i < data.length; i++){
-      if(data[i].status == 'running'){
+      if(data[i].status == '@JobStatus.Running'){
         app.$data.running = true;
       }
-      if(data[i].status == 'waiting'){
+      if(data[i].status == '@JobStatus.Waiting'){
         app.$data.waiting = true;
       }
     }
