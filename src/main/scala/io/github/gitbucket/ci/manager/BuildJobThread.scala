@@ -123,7 +123,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           targetUrl      = None,
           description    = None,
           now            = endTime,
-          creator        = getAccountByUserName("root").get // TODO
+          creator        = job.creator
         )
       }
 

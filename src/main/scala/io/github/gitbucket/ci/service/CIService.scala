@@ -13,8 +13,9 @@ case class BuildJob(
   userName: String,
   repositoryName: String,
   buildNumber: Int,
-  sha: String, startTime:
-  Option[java.util.Date],
+  sha: String,
+  startTime: Option[java.util.Date],
+  creator: Account,
   config: CIConfig
 )
 
@@ -46,14 +47,14 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     }.firstOption
   }
 
-  def runBuild(userName: String, repositoryName: String, sha: String, config: CIConfig)(implicit s: Session): Unit = {
+  def runBuild(userName: String, repositoryName: String, sha: String, creator: Account, config: CIConfig)(implicit s: Session): Unit = {
     // TODO Use id table to get a next build number?
     val buildNumber = (getCIResults(userName, repositoryName).map(_.buildNumber) match {
       case Nil => 0
       case seq => seq.max
     }) + 1
 
-    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, config))
+    BuildManager.queueBuildJob(BuildJob(userName, repositoryName, buildNumber, sha, None, creator, config))
   }
 
   def killBuild(userName: String, repositoryName: String, buildNumber: Int): Unit = {

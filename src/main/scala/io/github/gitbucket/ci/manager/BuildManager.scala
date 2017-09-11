@@ -16,9 +16,7 @@ object BuildManager {
   }
 
   def startBuildManager(): Unit = {
-    threads.foreach { thread =>
-      thread.start()
-    }
+    threads.foreach(_.start())
   }
 
 }
