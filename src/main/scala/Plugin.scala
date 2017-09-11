@@ -29,7 +29,7 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   )
 
   override val repositoryMenus = Seq(
-    (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build"))
+    (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build", Some("sync")))
   )
 
   override val repositorySettingTabs = Seq(
