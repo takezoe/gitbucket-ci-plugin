@@ -30,8 +30,12 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   val sb = new StringBuffer()
 
   override def run(): Unit = {
-    while(true){
-      runBuild(queue.take())
+    try {
+      while(true){
+        runBuild(queue.take())
+      }
+    } catch {
+      case _: InterruptedException => ()
     }
   }
 
