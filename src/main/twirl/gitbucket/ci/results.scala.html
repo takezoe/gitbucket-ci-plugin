@@ -30,7 +30,7 @@
             <span v-if="job.status == '@JobStatus.Failure'" class="badge bg-red">Failure</span>
           </td>
           <td width="200">
-            <a :href="job.targetUrl" class="commit-message strong"><i class="octicon octicon-git-branch"></i>{{job.target}}</a><br>
+            <a :href="job.targetUrl" class="commit-message"><i class="octicon octicon-git-branch"></i>{{job.target}}</a><br>
             <a :href="'@url(repository)/commit/' + job.sha" class="commit-message monospace"><i class="octicon octicon-diff"></i>{{job.sha.substring(0, 7)}}</a>
           </td>
           <td>
