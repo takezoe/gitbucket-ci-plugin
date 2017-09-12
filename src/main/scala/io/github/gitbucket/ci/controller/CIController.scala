@@ -36,9 +36,13 @@ class CIController extends ControllerBase
   case class ApiJobStatus(
     buildNumber: Int,
     status: String,
+    target: String,
+    targetUrl: String,
     sha: String,
+    message: String,
+    committer: String,
+    author: String,
     startTime: String,
-    endTime: String,
     duration: String
   )
 
@@ -138,6 +142,14 @@ class CIController extends ControllerBase
     Ok()
   })
 
+  private def createTargetUrl(buildUserName: String, buildRepositoryName:String, buildBranch: String,
+                              pullRequestId: Option[Int]): String = {
+    pullRequestId match {
+      case Some(id) => s"${context.path}/${buildUserName}/${buildRepositoryName}/pull/${id}"
+      case None     => s"${context.path}/${buildUserName}/${buildRepositoryName}/tree/${buildBranch}"
+    }
+  }
+
   ajaxGet("/:owner/:repository/build/status")(referrersOnly { repository =>
     import gitbucket.core.view.helpers._
 
@@ -145,9 +157,13 @@ class CIController extends ControllerBase
       ApiJobStatus(
         buildNumber = job.buildNumber,
         status      = JobStatus.Waiting,
+        target      = job.pullRequestId.map("PR #" + _.toString).getOrElse(job.buildBranch),
+        targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
         sha         = job.sha,
+        message     = job.commitMessage,
+        committer   = job.commitUserName,
+        author      = job.buildUserName,
         startTime   = "",
-        endTime     = "" ,
         duration    = ""
       )
     }
@@ -156,9 +172,13 @@ class CIController extends ControllerBase
       ApiJobStatus(
         buildNumber = job.buildNumber,
         status      = JobStatus.Running,
+        target      = job.pullRequestId.map("PR #" + _.toString).getOrElse(job.buildBranch),
+        targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
         sha         = job.sha,
-        startTime   = job.startTime.map { startTime => datetime(startTime) }.getOrElse(""),
-        endTime     = "",
+        message     = job.commitMessage,
+        committer   = job.commitUserName,
+        author      = job.buildUserName,
+        startTime   = job.startTime.map { startTime => datetimeAgo(startTime) }.getOrElse(""),
         duration    = ""
       )
     }
@@ -167,9 +187,13 @@ class CIController extends ControllerBase
       ApiJobStatus(
         buildNumber = result.buildNumber,
         status      = result.status,
+        target      = result.pullRequestId.map("PR #" + _.toString).getOrElse(result.buildBranch),
+        targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId),
         sha         = result.sha,
-        startTime   = datetime(result.startTime),
-        endTime     = datetime(result.endTime),
+        message     = result.commitMessage,
+        committer   = result.commitUserName,
+        author      = result.buildUserName,
+        startTime   = datetimeAgo(result.startTime),
         duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + " sec"
       )
     }
