@@ -14,7 +14,7 @@
         }
         Build history
       </div>
-      <table class="table">
+      <table class="table table-hover">
         <tr v-for="job in jobs">
           <td width="250">
             <a v-if="job.status != '@JobStatus.Waiting'" :href="'@url(repository)/build/' + job.buildNumber">#{{job.buildNumber}}</a>
@@ -32,7 +32,8 @@
           </td>
           <td>
             {{job.message}}<br>
-            <span class="muted">{{job.committer}}</span>
+            <span class="muted" v-if="job.userName != ''"><a :href="'@context.path/' + job.userName" class="username strong">{{job.userName}}</a></span>
+            <span class="muted" v-if="job.userName == ''">{{job.committer}}</span>
           </td>
           <td class="text-right">{{job.duration}}</td>
         </tr>

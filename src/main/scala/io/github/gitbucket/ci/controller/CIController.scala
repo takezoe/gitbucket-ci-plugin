@@ -40,7 +40,8 @@ class CIController extends ControllerBase
     targetUrl: String,
     sha: String,
     message: String,
-    committer: String, // TODO flag to indicate whether gitbucket user or not
+    userName: String,
+    committer: String,
     author: String,
     startTime: String,
     duration: String
@@ -153,7 +154,7 @@ class CIController extends ControllerBase
   }
 
   ajaxGet("/:owner/:repository/build/status")(referrersOnly { repository =>
-    import gitbucket.core.view.helpers._
+    import gitbucket.core.view.helpers.datetimeAgo
 
     val queuedJobs = getQueuedJobs(repository.owner, repository.name).map { job =>
       ApiJobStatus(
@@ -163,6 +164,7 @@ class CIController extends ControllerBase
         targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
         sha         = job.sha,
         message     = job.commitMessage,
+        userName    = getAccountByMailAddress(job.commitMailAddress).map(_.userName).getOrElse(""),
         committer   = job.commitUserName,
         author      = job.buildUserName,
         startTime   = "",
@@ -178,6 +180,7 @@ class CIController extends ControllerBase
         targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
         sha         = job.sha,
         message     = job.commitMessage,
+        userName    = getAccountByMailAddress(job.commitMailAddress).map(_.userName).getOrElse(""),
         committer   = job.commitUserName,
         author      = job.buildUserName,
         startTime   = job.startTime.map { startTime => datetimeAgo(startTime) }.getOrElse(""),
@@ -193,6 +196,7 @@ class CIController extends ControllerBase
         targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId),
         sha         = result.sha,
         message     = result.commitMessage,
+        userName    = getAccountByMailAddress(result.commitMailAddress).map(_.userName).getOrElse(""),
         committer   = result.commitUserName,
         author      = result.buildUserName,
         startTime   = datetimeAgo(result.startTime),
