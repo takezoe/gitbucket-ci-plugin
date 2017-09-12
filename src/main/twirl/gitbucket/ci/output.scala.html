@@ -1,8 +1,9 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  buildNumber: Long, status: String, isEditable: Boolean)(implicit context: gitbucket.core.controller.Context)
+  status: io.github.gitbucket.ci.controller.CIController.ApiJobStatus,
+  isEditable: Boolean)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @import io.github.gitbucket.ci.util.JobStatus
-@gitbucket.core.html.main(s"Build #${buildNumber} - ${repository.owner}/${repository.name}", Some(repository)) {
+@gitbucket.core.html.main(s"Build #${status.buildNumber} - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
     <div id="app">
@@ -13,19 +14,42 @@
             <input type="button" class="btn btn-sm btn-danger" value="Cancel build" v-on:click="cancelBuild()" v-if="status == 'running'">
           </div>
         }
-        <a href="@url(repository)/build">Build history</a> &gt; #@buildNumber
-        @if(status == JobStatus.Success){
-          <span class="badge bg-green">Success</span>
-        }
-        @if(status == JobStatus.Failure){
-          <span class="badge bg-red">Failure</span>
-        }
-        @if(status == JobStatus.Running){
-          <span v-if="status == '@JobStatus.Success'" class="badge bg-green">Success</span>
-          <span v-if="status == '@JobStatus.Failure'" class="badge bg-red">Failure</span>
-          <span v-if="status == '@JobStatus.Running'" class="badge bg-yellow">Running</span>
-        }
+        <a href="@url(repository)/build">Build history</a> &gt; #@{status.buildNumber}
       </div>
+      <table class="table">
+        <tr>
+          <td width="250">
+            #@{status.buildNumber}
+            <span class="muted">by @user(userName = status.author, styleClass="username strong") at @status.startTime</span><br>
+            @if(status.status == JobStatus.Success){
+              <span class="badge bg-green">Success</span>
+            }
+            @if(status.status == JobStatus.Failure){
+              <span class="badge bg-red">Failure</span>
+            }
+            @if(status.status == JobStatus.Running){
+              <span v-if="status == '@JobStatus.Success'" class="badge bg-green">Success</span>
+              <span v-if="status == '@JobStatus.Failure'" class="badge bg-red">Failure</span>
+              <span v-if="status == '@JobStatus.Running'" class="badge bg-yellow">Running</span>
+            }
+          </td>
+          <td width="200">
+            <a href="@status.targetUrl" class="commit-message strong"><i class="octicon octicon-git-branch"></i>@status.target</a><br>
+            <a href="@url(repository)/commit/@status.sha" class="commit-message monospace"><i class="octicon octicon-diff"></i>@status.sha.substring(0, 7)</a>
+          </td>
+          <td>
+            @status.message<br>
+            @if(status.userName.nonEmpty) {
+              <span class="muted">@user(userName = status.userName, styleClass = "username strong")</span>
+            } else {
+              <span class="muted">@status.committer</span>
+            }
+          </td>
+          <td class="text-right">
+            @status.duration
+          </td>
+        </tr>
+      </table>
       <pre id="output" style="background-color: black; color: white;" v-html="output"></pre>
       <span v-if="loading"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
     </div>
@@ -44,12 +68,12 @@ var app = new Vue({
   },
   methods: {
     cancelBuild: function(){
-      $.post('@url(repository)/build/cancel/@buildNumber', function(){
+      $.post('@url(repository)/build/cancel/@status.buildNumber', function(){
         // TODO
       });
     },
     restartBuild: function(){
-      $.post('@url(repository)/build/restart/@buildNumber', function(){
+      $.post('@url(repository)/build/restart/@status.buildNumber', function(){
         location.href = '@url(repository)/build';
       });
     }
@@ -57,7 +81,7 @@ var app = new Vue({
 });
 
 function fetchJobOutput(){
-  $.get('@url(repository)/build/output/@buildNumber', function(data){
+  $.get('@url(repository)/build/output/@status.buildNumber', function(data){
     app.$data.output = data.output;
     if(data.status == '@JobStatus.Running'){
       setTimeout(function(){ fetchJobOutput(); }, 1000)

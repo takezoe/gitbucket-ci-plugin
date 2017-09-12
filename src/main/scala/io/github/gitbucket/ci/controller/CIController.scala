@@ -6,6 +6,7 @@ import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
 import gitbucket.core.util.{JGitUtil, OwnerAuthenticator, ReferrerAuthenticator, WritableUsersAuthenticator}
 import gitbucket.core.util.Implicits._
+import gitbucket.core.view.helpers.datetimeAgo
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.SimpleCIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
@@ -14,19 +15,7 @@ import org.eclipse.jgit.api.Git
 import org.json4s.jackson.Serialization
 import org.scalatra.{BadRequest, Ok}
 
-class CIController extends ControllerBase
-  with SimpleCIService with AccountService with RepositoryService
-  with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator {
-
-  case class BuildConfigForm(
-    enableBuild: Boolean,
-    buildScript: Option[String]
-  )
-
-  val buildConfigForm = mapping(
-    "enableBuild" -> trim(label("Enable build", boolean())),
-    "buildScript" -> trim(label("Build script", optional(text())))
-  )(BuildConfigForm.apply)
+object CIController {
 
   case class ApiJobOutput(
     status: String,
@@ -47,6 +36,23 @@ class CIController extends ControllerBase
     duration: String
   )
 
+  case class BuildConfigForm(
+    enableBuild: Boolean,
+    buildScript: Option[String]
+  )
+
+}
+
+class CIController extends ControllerBase
+  with SimpleCIService with AccountService with RepositoryService
+  with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator {
+  import CIController._
+
+  val buildConfigForm = mapping(
+    "enableBuild" -> trim(label("Enable build", boolean())),
+    "buildScript" -> trim(label("Build script", optional(text())))
+  )(BuildConfigForm.apply)
+
   get("/:owner/:repository/build")(referrersOnly { repository =>
     if(loadCIConfig(repository.owner, repository.name).isDefined){
       gitbucket.ci.html.results(repository,
@@ -62,13 +68,40 @@ class CIController extends ControllerBase
 
     getRunningJobs(repository.owner, repository.name)
       .find { case (job, _) => job.buildNumber == buildNumber }
-      .map  { case (job, _) => (job.buildNumber, "running")
+      .map  { case (job, _) => //(job.buildNumber, JobStatus.Running)
+        ApiJobStatus(
+          buildNumber = job.buildNumber,
+          status      = JobStatus.Running,
+          target      = job.pullRequestId.map("PR #" + _.toString).getOrElse(job.buildBranch),
+          targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
+          sha         = job.sha,
+          message     = job.commitMessage,
+          userName    = getAccountByMailAddress(job.commitMailAddress).map(_.userName).getOrElse(""),
+          committer   = job.commitUserName,
+          author      = job.buildAuthor.userName,
+          startTime   = job.startTime.map { startTime => datetimeAgo(startTime) }.getOrElse(""),
+          duration    = ""
+        )
     }.orElse {
       getCIResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
-        .map { result => (result.buildNumber, result.status) }
-    }.map { case (buildNumber, status) =>
-      gitbucket.ci.html.output(repository, buildNumber, status,
+        .map { result =>
+          ApiJobStatus(
+            buildNumber = result.buildNumber,
+            status      = JobStatus.Running,
+            target      = result.pullRequestId.map("PR #" + _.toString).getOrElse(result.buildBranch),
+            targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId),
+            sha         = result.sha,
+            message     = result.commitMessage,
+            userName    = getAccountByMailAddress(result.commitMailAddress).map(_.userName).getOrElse(""),
+            committer   = result.commitUserName,
+            author      = result.buildAuthor,
+            startTime   = datetimeAgo(result.startTime),
+            duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + " sec"
+          )
+        }
+    }.map { status =>
+      gitbucket.ci.html.output(repository, status,
         hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
     } getOrElse NotFound()
   })
@@ -154,8 +187,6 @@ class CIController extends ControllerBase
   }
 
   ajaxGet("/:owner/:repository/build/status")(referrersOnly { repository =>
-    import gitbucket.core.view.helpers.datetimeAgo
-
     val queuedJobs = getQueuedJobs(repository.owner, repository.name).map { job =>
       ApiJobStatus(
         buildNumber = job.buildNumber,
@@ -224,3 +255,4 @@ class CIController extends ControllerBase
   })
 
 }
+
