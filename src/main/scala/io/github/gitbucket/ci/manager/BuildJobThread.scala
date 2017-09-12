@@ -145,6 +145,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
             sha                 = job.sha,
             commitMessage       = job.commitMessage,
             commitUserName      = job.commitUserName,
+            commitMailAddress   = job.commitMailAddress,
             pullRequestId       = job.pullRequestId,
             startTime           = startTime,
             endTime             = endTime,

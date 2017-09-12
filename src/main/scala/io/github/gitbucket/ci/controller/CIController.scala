@@ -40,7 +40,7 @@ class CIController extends ControllerBase
     targetUrl: String,
     sha: String,
     message: String,
-    committer: String,
+    committer: String, // TODO flag to indicate whether gitbucket user or not
     author: String,
     startTime: String,
     duration: String
@@ -103,7 +103,8 @@ class CIController extends ControllerBase
             buildBranch         = revision,
             sha                 = objectId.name,
             commitMessage       = revCommit.getShortMessage,
-            commitUserName      = revCommit.getCommitterIdent.getName, // TODO
+            commitUserName      = revCommit.getCommitterIdent.getName,
+            commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
             pullRequestId       = None,
             buildAuthor         = context.loginAccount.get,
             config              = config
@@ -127,6 +128,7 @@ class CIController extends ControllerBase
           sha                 = result.sha,
           commitMessage       = result.commitMessage,
           commitUserName      = result.commitUserName,
+          commitMailAddress   = result.commitMailAddress,
           pullRequestId       = result.pullRequestId,
           buildAuthor         = context.loginAccount.get,
           config              = config

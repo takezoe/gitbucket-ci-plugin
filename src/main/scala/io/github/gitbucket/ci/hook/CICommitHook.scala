@@ -34,7 +34,8 @@ class CICommitHook extends ReceiveHook
                 buildBranch         = branch,
                 sha                 = sha,
                 commitMessage       = revCommit.getShortMessage,
-                commitUserName      = revCommit.getCommitterIdent.getName, // TODO??
+                commitUserName      = revCommit.getCommitterIdent.getName,
+                commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
                 pullRequestId       = None,
                 pusher              = pusher,
                 config              = config
@@ -59,7 +60,8 @@ class CICommitHook extends ReceiveHook
                   buildBranch         = branch,
                   sha                 = sha,
                   commitMessage       = revCommit.getShortMessage,
-                  commitUserName      = revCommit.getCommitterIdent.getName, // TODO??
+                  commitUserName      = revCommit.getCommitterIdent.getName,
+                  commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
                   pullRequestId       = Some(pullRequest.issueId),
                   pusher              = pusher,
                   config              = config
@@ -73,7 +75,7 @@ class CICommitHook extends ReceiveHook
   }
 
   private def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
-                       buildBranch: String, sha: String, commitMessage: String, commitUserName: String,
+                       buildBranch: String, sha: String, commitMessage: String, commitUserName: String, commitMailAddress: String,
                        pullRequestId: Option[Int], pusher: String, config: CIConfig)(implicit session: Session): Unit = {
     getAccountByUserName(pusher).foreach { pusherAccount =>
       runBuild(
@@ -85,6 +87,7 @@ class CICommitHook extends ReceiveHook
         sha                 = sha,
         commitMessage       = commitMessage,
         commitUserName      = commitUserName,
+        commitMailAddress   = commitMailAddress,
         pullRequestId       = pullRequestId,
         buildAuthor         = pusherAccount,
         config              = config

@@ -16,12 +16,13 @@ trait CIResultComponent { self: gitbucket.core.model.Profile =>
     val sha = column[String]("SHA")
     val commitMessage = column[String]("COMMIT_MESSAGE")
     val commitUserName = column[String]("COMMIT_USER_NAME")
+    val commitMailAddress = column[String]("COMMIT_MAIL_ADDRESS")
     val pullRequestId = column[Int]("PULL_REQUEST_ID")
     val startTime = column[java.util.Date]("START_TIME")
     val endTime = column[java.util.Date]("END_TIME")
     val status = column[String]("STATUS")
     val buildAuthor = column[String]("BUILD_AUTHOR")
-    def * = (userName, repositoryName, buildUserName, buildRepositoryName, buildNumber, buildBranch, sha, commitMessage, commitUserName, pullRequestId.?, startTime, endTime, status, buildAuthor) <> (CIResult.tupled, CIResult.unapply)
+    def * = (userName, repositoryName, buildUserName, buildRepositoryName, buildNumber, buildBranch, sha, commitMessage, commitUserName, commitMailAddress, pullRequestId.?, startTime, endTime, status, buildAuthor) <> (CIResult.tupled, CIResult.unapply)
   }
 }
 
@@ -35,6 +36,7 @@ case class CIResult(
   sha: String,
   commitMessage: String,
   commitUserName: String,
+  commitMailAddress: String,
   pullRequestId: Option[Int],
   startTime: java.util.Date,
   endTime: java.util.Date,

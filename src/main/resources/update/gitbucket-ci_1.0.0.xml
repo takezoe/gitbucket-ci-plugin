@@ -25,6 +25,7 @@
     <column name="SHA" type="varchar(100)" nullable="false"/>
     <column name="COMMIT_MESSAGE" type="text" nullable="false"/>
     <column name="COMMIT_USER_NAME" type="varchar(100)" nullable="false"/>
+    <column name="COMMIT_MAIL_ADDRESS" type="varchar(100)" nullable="false"/>
     <column name="START_TIME" type="datetime" nullable="false"/>
     <column name="END_TIME" type="datetime" nullable="false"/>
     <column name="STATUS" type="varchar(100)" nullable="false"/>

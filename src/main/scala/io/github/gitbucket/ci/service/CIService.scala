@@ -19,6 +19,7 @@ case class BuildJob(
   sha: String,
   commitMessage: String,
   commitUserName: String,
+  commitMailAddress: String,
   pullRequestId: Option[Int],
   startTime: Option[java.util.Date],
   buildAuthor: Account,
@@ -53,9 +54,9 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     }.firstOption
   }
 
-  def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String, buildBranch: String,
-               sha: String, commitMessage: String, commitUserName: String, pullRequestId: Option[Int], buildAuthor: Account,
-               config: CIConfig)(implicit s: Session): Unit = {
+  def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
+               buildBranch: String, sha: String, commitMessage: String, commitUserName: String, commitMailAddress: String,
+               pullRequestId: Option[Int], buildAuthor: Account, config: CIConfig)(implicit s: Session): Unit = {
     // TODO Use id table to get a next build number?
     val buildNumber = (getCIResults(userName, repositoryName).map(_.buildNumber) match {
       case Nil => 0
@@ -72,6 +73,7 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
       sha                 = sha,
       commitMessage       = commitMessage,
       commitUserName      = commitUserName,
+      commitMailAddress   = commitMailAddress,
       pullRequestId       = pullRequestId,
       startTime           = None,
       buildAuthor         = buildAuthor,
