@@ -1,10 +1,11 @@
 import javax.servlet.ServletContext
 
 import gitbucket.core.controller.Context
-import gitbucket.core.plugin.{Link, PluginRegistry, ReceiveHook}
-import gitbucket.core.service.{RepositoryService, SystemSettingsService}
+import gitbucket.core.plugin.{Link, PluginRegistry, ReceiveHook, RepositoryHook}
+import gitbucket.core.service.RepositoryService.RepositoryInfo
+import gitbucket.core.service.SystemSettingsService
 import io.github.gitbucket.ci.controller.CIController
-import io.github.gitbucket.ci.hook.CICommitHook
+import io.github.gitbucket.ci.hook.{CICommitHook, CIRepositoryHook}
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.solidbase.migration.LiquibaseMigration
 import io.github.gitbucket.solidbase.model.Version
@@ -23,20 +24,18 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
-
-  override val controllers = Seq(
-    "/*" -> new CIController()
-  )
+  override val controllers = Seq("/*" -> new CIController())
 
   override val repositoryMenus = Seq(
-    (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build", Some("sync")))
+    (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build", Some("sync")))
   )
 
   override val repositorySettingTabs = Seq(
-    (repository: RepositoryService.RepositoryInfo, context: Context) => Some(Link("build", "Build", s"settings/build"))
+    (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", s"settings/build"))
   )
 
   override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())
+  override val repositoryHooks: Seq[RepositoryHook] = Seq(new CIRepositoryHook())
 
   BuildManager.startBuildManager()
 
