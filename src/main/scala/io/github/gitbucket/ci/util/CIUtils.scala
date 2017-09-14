@@ -24,4 +24,6 @@ object CIUtils {
     }
   }
 
+  def isWindows: Boolean = File.separatorChar == '\\'
+
 }

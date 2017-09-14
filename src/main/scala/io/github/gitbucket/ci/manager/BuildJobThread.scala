@@ -106,12 +106,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           }
 
           // run script
-          // TODO This works on only Linux or Mac...
-          val buildFile = new File(buildDir, "build.sh")
-          FileUtils.write(buildFile, "#!/bin/sh\n" + job.config.buildScript.replaceAll("\r\n", "\n"), "UTF-8")
-          buildFile.setExecutable(true)
-
-          val process = Process("../build.sh", dir).run(new BuildProcessLogger(sb))
+          val command = prepareBuildScript(buildDir, job.config.buildScript)
+          val process = Process(command, dir).run(new BuildProcessLogger(sb))
           runningProcess.set(Some(process))
 
           while (process.isAlive()) {
@@ -181,6 +177,21 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     cancelled.set(true)
     runningProcess.get.foreach(_.destroy())
   }
+
+  private def prepareBuildScript(buildDir: File, buildScript: String): String = {
+    if(CIUtils.isWindows){
+      val buildFile = new File(buildDir, "build.bat")
+      FileUtils.write(buildFile, buildScript, "UTF-8")
+      buildFile.setExecutable(true)
+      buildFile.getAbsolutePath
+    } else {
+      val buildFile = new File(buildDir, "build.sh")
+      FileUtils.write(buildFile, "#!/bin/sh\n" + buildScript.replaceAll("\r\n", "\n"), "UTF-8")
+      buildFile.setExecutable(true)
+      "../build.sh"
+    }
+  }
+
 }
 
 /**
