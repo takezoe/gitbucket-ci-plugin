@@ -9,6 +9,7 @@ import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService, SystemSettingsService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
+import gitbucket.core.util.{Mailer, Notifier}
 import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
@@ -55,7 +56,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     val startTime = new java.util.Date()
     initState(Some(job.copy(startTime = Some(startTime))))
 
-    val targetUrl = loadSystemSettings().baseUrl.map { baseUrl =>
+    val settings = loadSystemSettings()
+    val targetUrl = settings.baseUrl.map { baseUrl =>
       s"${baseUrl}/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"
     }
 
@@ -69,7 +71,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
         targetUrl      = targetUrl,
         description    = None,
         now            = new java.util.Date(),
-        creator        = job.buildAuthor // TODO??
+        creator        = job.buildAuthor // TODO right??
       )
     }
 
@@ -160,8 +162,24 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           targetUrl      = targetUrl,
           description    = None,
           now            = endTime,
-          creator        = job.buildAuthor // TODO??
+          creator        = job.buildAuthor // TODO right??
         )
+
+        // Send email
+        if(job.config.notification && settings.useSMTP){
+          settings.smtp.foreach { smtp =>
+            val committer = getAccountByMailAddress(job.commitMailAddress, false).map(_.mailAddress).toSeq
+            val collaborators = getCollaboratorUserNames(job.userName, job.repositoryName).flatMap { userName =>
+              getAccountByUserName(userName).map(_.mailAddress)
+            }
+
+            val recipients = (committer ++ collaborators).distinct
+            recipients.foreach { to =>
+              // TODO from address
+              new Mailer(smtp).send(to, "", null, "text", Some("html"))
+            }
+          }
+        }
       }
 
       logger.info("Build number: " + job.buildNumber)

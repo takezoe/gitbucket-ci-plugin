@@ -16,10 +16,21 @@
                 Enable build
               </label>
             </fieldset>
-            <label><span class="strong">Build script</span></label>
-            <fieldset>
-              <textarea id="buildScript" name="buildScript" class="form-control" style="height: 100px;">@config.map(_.buildScript)</textarea>
-            </fieldset>
+            <div id="buildSettings">
+              <label><span class="strong">Build script</span></label>
+              <fieldset>
+                <textarea id="buildScript" name="buildScript" class="form-control" style="height: 100px;">@config.map(_.buildScript)</textarea>
+              </fieldset>
+              <fieldset class="form-group">
+                <label class="checkbox" for="notification">
+                  <input type="checkbox" id="notification" name="notification" />
+                  E-mail notification
+                  <div class="normal muted">
+                    This feature requires SMTP configuration in GitBucket.
+                  </div>
+                </label>
+              </fieldset>
+            </div>
           </div>
         </div>
         <div class="align-right" style="margin-top: 20px;">
@@ -32,7 +43,7 @@
 <script>
 $(function(){
   $('#enableBuild').change(function(){
-    $('#buildScript').prop('disabled', !$(this).prop('checked'));
+    $('#buildSettings textarea, #buildSettings input').prop('disabled', !$(this).prop('checked'));
   }).change();
 });
 </script>
