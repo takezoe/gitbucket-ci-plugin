@@ -23,10 +23,10 @@
               </fieldset>
               <fieldset class="form-group">
                 <label class="checkbox" for="notification">
-                  <input type="checkbox" id="notification" name="notification" />
+                  <input type="checkbox" id="notification" name="notification"@if(config.exists(_.notification)){ checked}/>
                   E-mail notification
                   <div class="normal muted">
-                    This feature requires SMTP configuration in GitBucket.
+                    Send E-mail to committer and collaborators when build is failed. This feature requires SMTP configuration in GitBucket.
                   </div>
                 </label>
               </fieldset>

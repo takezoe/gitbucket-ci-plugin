@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import gitbucket.core.model.CommitState
 import gitbucket.core.model.Profile.profile.blockingApi._
+import gitbucket.core.service.SystemSettingsService.SystemSettings
 import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService, SystemSettingsService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
@@ -14,6 +15,7 @@ import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
+import io.github.gitbucket.markedj.{Marked, Options}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
@@ -166,17 +168,22 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
         )
 
         // Send email
-        if(job.config.notification && settings.useSMTP){
+        if(job.config.notification && settings.useSMTP && exitValue != 0){
           settings.smtp.foreach { smtp =>
             val committer = getAccountByMailAddress(job.commitMailAddress, false).map(_.mailAddress).toSeq
             val collaborators = getCollaboratorUserNames(job.userName, job.repositoryName).flatMap { userName =>
               getAccountByUserName(userName).map(_.mailAddress)
             }
 
+            val subject = createMailSubject(job)
+            val markdown = createMailContent(job, settings, targetUrl)
+            val html = markdown2html(markdown)
+
+            val mailer = new Mailer(smtp)
+
             val recipients = (committer ++ collaborators).distinct
             recipients.foreach { to =>
-              // TODO from address
-              new Mailer(smtp).send(to, "", null, "text", Some("html"))
+              mailer.send(to, subject, markdown, Some(html))
             }
           }
         }
@@ -189,6 +196,47 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     } finally {
       initState(None)
     }
+  }
+
+  private def createMailSubject(job: BuildJob): String = {
+    val sb = new StringBuilder()
+
+    sb.append(s"[${job.userName}/${job.repositoryName}] Build #${job.buildNumber} failed ")
+    job.pullRequestId match {
+      case Some(id) =>
+        sb.append(s"(PR #${id})")
+      case None =>
+        sb.append(s"(${job.buildBranch})")
+    }
+
+    sb.toString
+  }
+
+  private def createMailContent(job: BuildJob, settings: SystemSettings, targetUrl: Option[String]): String = {
+    val sb = new StringBuilder()
+
+    settings.baseUrl match {
+      case Some(baseUrl) =>
+        sb.append(s"[${job.sha.substring(0, 7)}](${baseUrl}/${job.userName}/${job.repositoryName}/commit/${job.sha}) by ${job.commitUserName}\n")
+      case None =>
+        sb.append(s"${job.sha.substring(0, 7)} by ${job.commitUserName}\n")
+    }
+    sb.append(job.commitMessage)
+    sb.append("\n")
+
+    targetUrl.foreach { url =>
+      sb.append("\n")
+      sb.append("----\n")
+      sb.append(s"[View it on GitBucket](${url})\n")
+    }
+
+    sb.toString
+  }
+
+  private def markdown2html(markdown: String): String = {
+    val options = new Options()
+    options.setBreaks(true)
+    Marked.marked(markdown, options)
   }
 
   def cancel(): Unit = {
