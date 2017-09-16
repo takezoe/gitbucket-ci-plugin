@@ -1,10 +1,10 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  hasOwnerPermission: Boolean)(implicit context: gitbucket.core.controller.Context)
+  isOwner: Boolean)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     No build configuration for this repository.
-    @if(hasOwnerPermission){
+    @if(isOwner){
       You can configure build <a href="@url(repository)/settings/build">here</a>.
     }
   }

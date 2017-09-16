@@ -1,5 +1,5 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  isEditable: Boolean)(implicit context: gitbucket.core.controller.Context)
+  isEditable: Boolean, isOwner: Boolean)(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @import io.github.gitbucket.ci.util.JobStatus
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
@@ -10,6 +10,9 @@
         @if(isEditable){
           <div class="pull-right">
             <input type="button" id="run-build" class="btn btn-sm btn-success" value="Run build" v-on:click="runBuild()" :disabled="running || waiting">
+            @if(isOwner){
+              <a href="@url(repository)/settings/build" class="btn btn-sm btn-default"><i class="octicon octicon-gear"></i></a>
+            }
           </div>
         }
         Build history

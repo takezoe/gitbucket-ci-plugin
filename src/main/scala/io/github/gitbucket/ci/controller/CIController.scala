@@ -58,7 +58,8 @@ class CIController extends ControllerBase
   get("/:owner/:repository/build")(referrersOnly { repository =>
     if(loadCIConfig(repository.owner, repository.name).isDefined){
       gitbucket.ci.html.results(repository,
-        hasDeveloperRole(repository.owner, repository.name, context.loginAccount))
+        hasDeveloperRole(repository.owner, repository.name, context.loginAccount),
+        hasOwnerRole(repository.owner, repository.name, context.loginAccount))
     } else {
       gitbucket.ci.html.guide(repository,
         hasOwnerRole(repository.owner, repository.name, context.loginAccount))
