@@ -1,8 +1,6 @@
 package io.github.gitbucket.ci.service
 
-import java.util.concurrent.ConcurrentHashMap
-
-import gitbucket.core.model.{Account, Role}
+import gitbucket.core.model.Account
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.ci.model._
 import io.github.gitbucket.ci.model.Profile._
@@ -30,10 +28,10 @@ case class BuildJob(
 
 object BuildNumberGenerator extends CIService with AccountService with RepositoryService {
 
-  private val map = new ConcurrentHashMap[(String, String), Int]()
+  private val map = new scala.collection.mutable.HashMap[(String, String), Int]()
 
   def generateBuildNumber(userName: String, repositoryName: String)(implicit s: Session): Int = synchronized {
-    val buildNumber = Option(map.get((userName, repositoryName))).map(_ + 1).getOrElse {
+    val buildNumber = map.get((userName, repositoryName)).map(_ + 1).getOrElse {
       (getCIResults(userName, repositoryName).map(_.buildNumber) match {
         case Nil => 0
         case seq => seq.max
