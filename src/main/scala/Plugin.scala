@@ -31,12 +31,13 @@ class Plugin extends gitbucket.core.plugin.Plugin {
   )
 
   override val repositorySettingTabs = Seq(
-    (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", s"settings/build"))
+    (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", "settings/build"))
   )
 
   override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())
   override val repositoryHooks: Seq[RepositoryHook] = Seq(new CIRepositoryHook())
 
+  // TODO GitBucket should provide a hook method to initialize plugin...
   BuildManager.startBuildManager()
 
   override def shutdown(registry: PluginRegistry, context: ServletContext,
