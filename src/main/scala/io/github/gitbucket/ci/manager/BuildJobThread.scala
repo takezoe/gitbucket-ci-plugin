@@ -10,7 +10,7 @@ import gitbucket.core.service.SystemSettingsService.SystemSettings
 import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService, SystemSettingsService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
-import gitbucket.core.util.{Mailer, Notifier}
+import gitbucket.core.util.Mailer
 import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
@@ -26,7 +26,7 @@ import scala.util.control.ControlThrowable
 
 
 class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
-  with CommitStatusService with AccountService with RepositoryService with SimpleCIService with SystemSettingsService {
+  with CommitStatusService with AccountService with RepositoryService with CIService with SystemSettingsService {
 
   private val logger = LoggerFactory.getLogger(classOf[BuildJobThread])
 

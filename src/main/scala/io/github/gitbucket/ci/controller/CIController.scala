@@ -8,7 +8,7 @@ import gitbucket.core.util.{JGitUtil, OwnerAuthenticator, ReferrerAuthenticator,
 import gitbucket.core.util.Implicits._
 import gitbucket.core.view.helpers.datetimeAgo
 import io.github.gitbucket.ci.model.CIConfig
-import io.github.gitbucket.ci.service.SimpleCIService
+import io.github.gitbucket.ci.service.CIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import io.github.gitbucket.scalatra.forms._
 import org.eclipse.jgit.api.Git
@@ -45,7 +45,7 @@ object CIController {
 }
 
 class CIController extends ControllerBase
-  with SimpleCIService with AccountService with RepositoryService
+  with CIService with AccountService with RepositoryService
   with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator {
   import CIController._
 

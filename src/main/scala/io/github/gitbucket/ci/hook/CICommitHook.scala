@@ -7,13 +7,13 @@ import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.JGitUtil
 import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIConfig
-import io.github.gitbucket.ci.service.SimpleCIService
+import io.github.gitbucket.ci.service.CIService
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.{ReceiveCommand, ReceivePack}
 import profile.blockingApi._
 
 class CICommitHook extends ReceiveHook
-  with SimpleCIService with RepositoryService with AccountService with CommitStatusService with SystemSettingsService {
+  with CIService with RepositoryService with AccountService with CommitStatusService with SystemSettingsService {
 
   override def postReceive(owner: String, repository: String, receivePack: ReceivePack,
                            command: ReceiveCommand, pusher: String)(implicit session: Session): Unit = {

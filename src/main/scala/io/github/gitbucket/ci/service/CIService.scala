@@ -1,5 +1,7 @@
 package io.github.gitbucket.ci.service
 
+import java.util.concurrent.ConcurrentHashMap
+
 import gitbucket.core.model.{Account, Role}
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.ci.model._
@@ -26,7 +28,26 @@ case class BuildJob(
   config: CIConfig
 )
 
-trait SimpleCIService { self: AccountService with RepositoryService =>
+object BuildNumberGenerator extends CIService with AccountService with RepositoryService {
+
+  private val map = new ConcurrentHashMap[(String, String), Int]()
+
+  def generateBuildNumber(userName: String, repositoryName: String)(implicit s: Session): Int = synchronized {
+    val buildNumber = Option(map.get((userName, repositoryName))).map(_ + 1).getOrElse {
+      (getCIResults(userName, repositoryName).map(_.buildNumber) match {
+        case Nil => 0
+        case seq => seq.max
+      }) + 1
+    }
+
+    map.put((userName, repositoryName), buildNumber)
+
+    buildNumber
+  }
+
+}
+
+trait CIService { self: AccountService with RepositoryService =>
 
   def saveCIConfig(userName: String, repositoryName: String, config: Option[CIConfig])(implicit s: Session): Unit = {
     CIConfigs.filter { t =>
@@ -57,18 +78,12 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
   def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
                buildBranch: String, sha: String, commitMessage: String, commitUserName: String, commitMailAddress: String,
                pullRequestId: Option[Int], buildAuthor: Account, config: CIConfig)(implicit s: Session): Unit = {
-    // TODO Use id table to get a next build number?
-    val buildNumber = (getCIResults(userName, repositoryName).map(_.buildNumber) match {
-      case Nil => 0
-      case seq => seq.max
-    }) + 1
-
     BuildManager.queueBuildJob(BuildJob(
       userName            = userName,
       repositoryName      = repositoryName,
       buildUserName       = buildUserName,
       buildRepositoryName = buildRepositoryName,
-      buildNumber         = buildNumber,
+      buildNumber         = BuildNumberGenerator.generateBuildNumber(userName, repositoryName),
       buildBranch         = buildBranch,
       sha                 = sha,
       commitMessage       = commitMessage,
