@@ -145,15 +145,15 @@ trait SimpleCIService { self: AccountService with RepositoryService =>
     } else ""
   }
 
-  @deprecated("Use RepositoryService#hasOwnerRole instead.", "1.0.0")
-  def hasOwnerRole(owner: String, repository: String, loginAccount: Option[Account])(implicit s: Session): Boolean = {
-    loginAccount match {
-      case Some(a) if(a.isAdmin) => true
-      case Some(a) if(a.userName == owner) => true
-      case Some(a) if(getGroupMembers(owner).exists(_.userName == a.userName)) => true
-      case Some(a) if(getCollaboratorUserNames(owner, repository, Seq(Role.ADMIN)).contains(a.userName)) => true
-      case _ => false
-    }
-  }
+//  @deprecated("Use RepositoryService#hasOwnerRole instead.", "1.0.0")
+//  def hasOwnerRole(owner: String, repository: String, loginAccount: Option[Account])(implicit s: Session): Boolean = {
+//    loginAccount match {
+//      case Some(a) if(a.isAdmin) => true
+//      case Some(a) if(a.userName == owner) => true
+//      case Some(a) if(getGroupMembers(owner).exists(_.userName == a.userName)) => true
+//      case Some(a) if(getCollaboratorUserNames(owner, repository, Seq(Role.ADMIN)).contains(a.userName)) => true
+//      case _ => false
+//    }
+//  }
 
 }

@@ -10,12 +10,14 @@ trait CIConfigComponent { self: gitbucket.core.model.Profile =>
     val userName = column[String]("USER_NAME", O PrimaryKey)
     val repositoryName = column[String]("REPOSITORY_NAME")
     val buildScript = column[String]("BUILD_SCRIPT")
-    def * = (userName, repositoryName, buildScript) <> (CIConfig.tupled, CIConfig.unapply)
+    val notification = column[Boolean]("NOTIFICATION")
+    def * = (userName, repositoryName, buildScript, notification) <> (CIConfig.tupled, CIConfig.unapply)
   }
 }
 
 case class CIConfig(
   userName: String,
   repositoryName: String,
-  buildScript: String
+  buildScript: String,
+  notification: Boolean
 )

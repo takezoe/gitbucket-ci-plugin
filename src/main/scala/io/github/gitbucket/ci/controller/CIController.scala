@@ -38,7 +38,8 @@ object CIController {
 
   case class BuildConfigForm(
     enableBuild: Boolean,
-    buildScript: Option[String]
+    buildScript: Option[String],
+    notification: Boolean
   )
 
 }
@@ -50,7 +51,8 @@ class CIController extends ControllerBase
 
   val buildConfigForm = mapping(
     "enableBuild" -> trim(label("Enable build", boolean())),
-    "buildScript" -> trim(label("Build script", optional(text())))
+    "buildScript" -> trim(label("Build script", optional(text()))),
+    "notification" -> trim(label("Notification", boolean()))
   )(BuildConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
@@ -246,7 +248,7 @@ class CIController extends ControllerBase
   post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
     if(form.enableBuild){
       // TODO buildScript is required!!
-      saveCIConfig(repository.owner, repository.name, Some(CIConfig(repository.owner, repository.name, form.buildScript.getOrElse(""))))
+      saveCIConfig(repository.owner, repository.name, Some(CIConfig(repository.owner, repository.name, form.buildScript.getOrElse(""), form.notification)))
     } else {
       saveCIConfig(repository.owner, repository.name, None)
     }

@@ -6,13 +6,16 @@ import java.util.concurrent.atomic.AtomicReference
 
 import gitbucket.core.model.CommitState
 import gitbucket.core.model.Profile.profile.blockingApi._
+import gitbucket.core.service.SystemSettingsService.SystemSettings
 import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService, SystemSettingsService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
+import gitbucket.core.util.{Mailer, Notifier}
 import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
+import io.github.gitbucket.markedj.{Marked, Options}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.eclipse.jgit.api.Git
@@ -55,7 +58,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     val startTime = new java.util.Date()
     initState(Some(job.copy(startTime = Some(startTime))))
 
-    val targetUrl = loadSystemSettings().baseUrl.map { baseUrl =>
+    val settings = loadSystemSettings()
+    val targetUrl = settings.baseUrl.map { baseUrl =>
       s"${baseUrl}/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"
     }
 
@@ -69,7 +73,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
         targetUrl      = targetUrl,
         description    = None,
         now            = new java.util.Date(),
-        creator        = job.buildAuthor // TODO??
+        creator        = job.buildAuthor // TODO right??
       )
     }
 
@@ -160,8 +164,29 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           targetUrl      = targetUrl,
           description    = None,
           now            = endTime,
-          creator        = job.buildAuthor // TODO??
+          creator        = job.buildAuthor // TODO right??
         )
+
+        // Send email
+        if(job.config.notification && settings.useSMTP && exitValue != 0){
+          settings.smtp.foreach { smtp =>
+            val committer = getAccountByMailAddress(job.commitMailAddress, false).map(_.mailAddress).toSeq
+            val collaborators = getCollaboratorUserNames(job.userName, job.repositoryName).flatMap { userName =>
+              getAccountByUserName(userName).map(_.mailAddress)
+            }
+
+            val subject = createMailSubject(job)
+            val markdown = createMailContent(job, settings, targetUrl)
+            val html = markdown2html(markdown)
+
+            val mailer = new Mailer(smtp)
+
+            val recipients = (committer ++ collaborators).distinct
+            recipients.foreach { to =>
+              mailer.send(to, subject, markdown, Some(html))
+            }
+          }
+        }
       }
 
       logger.info("Build number: " + job.buildNumber)
@@ -171,6 +196,47 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
     } finally {
       initState(None)
     }
+  }
+
+  private def createMailSubject(job: BuildJob): String = {
+    val sb = new StringBuilder()
+
+    sb.append(s"[${job.userName}/${job.repositoryName}] Build #${job.buildNumber} failed ")
+    job.pullRequestId match {
+      case Some(id) =>
+        sb.append(s"(PR #${id})")
+      case None =>
+        sb.append(s"(${job.buildBranch})")
+    }
+
+    sb.toString
+  }
+
+  private def createMailContent(job: BuildJob, settings: SystemSettings, targetUrl: Option[String]): String = {
+    val sb = new StringBuilder()
+
+    settings.baseUrl match {
+      case Some(baseUrl) =>
+        sb.append(s"[${job.sha.substring(0, 7)}](${baseUrl}/${job.userName}/${job.repositoryName}/commit/${job.sha}) by ${job.commitUserName}\n")
+      case None =>
+        sb.append(s"${job.sha.substring(0, 7)} by ${job.commitUserName}\n")
+    }
+    sb.append(job.commitMessage)
+    sb.append("\n")
+
+    targetUrl.foreach { url =>
+      sb.append("\n")
+      sb.append("----\n")
+      sb.append(s"[View it on GitBucket](${url})\n")
+    }
+
+    sb.toString
+  }
+
+  private def markdown2html(markdown: String): String = {
+    val options = new Options()
+    options.setBreaks(true)
+    Marked.marked(markdown, options)
   }
 
   def cancel(): Unit = {
