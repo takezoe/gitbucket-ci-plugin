@@ -18,7 +18,7 @@ class CICommitHook extends ReceiveHook
   override def postReceive(owner: String, repository: String, receivePack: ReceivePack,
                            command: ReceiveCommand, pusher: String)(implicit session: Session): Unit = {
     val branch = command.getRefName.stripPrefix("refs/heads/")
-    if(branch != command.getRefName){
+    if(branch != command.getRefName && command.getType != ReceiveCommand.Type.DELETE){
       getRepository(owner, repository).foreach { repositoryInfo =>
         using(Git.open(getRepositoryDir(owner, repository))) { git =>
           val sha = command.getNewId.name
