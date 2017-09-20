@@ -169,22 +169,20 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
         // Send email
         if(job.config.notification && settings.useSMTP && exitValue != 0){
-          settings.smtp.foreach { smtp =>
-            val committer = getAccountByMailAddress(job.commitMailAddress, false).map(_.mailAddress).toSeq
-            val collaborators = getCollaboratorUserNames(job.userName, job.repositoryName).flatMap { userName =>
-              getAccountByUserName(userName).map(_.mailAddress)
-            }
+          val committer = getAccountByMailAddress(job.commitMailAddress, false).map(_.mailAddress).toSeq
+          val collaborators = getCollaboratorUserNames(job.userName, job.repositoryName).flatMap { userName =>
+            getAccountByUserName(userName).map(_.mailAddress)
+          }
 
-            val subject = createMailSubject(job)
-            val markdown = createMailContent(job, settings, targetUrl)
-            val html = markdown2html(markdown)
+          val subject = createMailSubject(job)
+          val markdown = createMailContent(job, settings, targetUrl)
+          val html = markdown2html(markdown)
 
-            val mailer = new Mailer(smtp)
+          val mailer = new Mailer(settings)
 
-            val recipients = (committer ++ collaborators).distinct
-            recipients.foreach { to =>
-              mailer.send(to, subject, markdown, Some(html))
-            }
+          val recipients = (committer ++ collaborators).distinct
+          recipients.foreach { to =>
+            mailer.send(to, subject, markdown, Some(html))
           }
         }
       }
