@@ -14,7 +14,7 @@ Plugin version | GitBucket version
 
 ## Installation
 
-Not released yet.
+Download jar file from [the release page](https://github.com/gitbucket/gitbucket-gist-plugin) and put into `GITBUCKET_HOME/plugins`.
 
 ## Build
 
