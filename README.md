@@ -1,6 +1,6 @@
 gitbucket-ci-plugin
 ========
-A GitBucket plug-in that adds simple CI ability to GitBucket.
+GitBucket plug-in that adds simple CI ability to GitBucket.
 
 ![Build results](gitbucket-ci-plugin_results.png)
 
