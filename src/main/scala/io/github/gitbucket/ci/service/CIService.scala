@@ -73,6 +73,25 @@ trait CIService { self: AccountService with RepositoryService =>
     }.firstOption
   }
 
+  def getLatestCIStatus(userName: String, repositoryName: String, branchName: String)(implicit s: Session): String = {
+    import scala.collection.JavaConverters._
+    if (BuildManager.queue.iterator.asScala.exists{ job =>
+      job.userName == userName && job.repositoryName == repositoryName && job.buildBranch == branchName
+    }){
+      "waiting"
+    }else if ( BuildManager.threads.exists{ thread =>
+      thread.runningJob.get.exists { job =>
+        job.userName == userName && job.repositoryName == repositoryName && job.buildBranch == branchName
+      }
+    }){
+      "running"
+    }else{
+      CIResults.filter { t =>
+        (t.userName === userName.bind) && (t.repositoryName === repositoryName.bind) && (t.buildBranch === branchName.bind)
+      }.sortBy(_.buildNumber.desc).map{_.status}.firstOption.getOrElse("uknown")
+    }
+  }
+
   def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
                buildBranch: String, sha: String, commitMessage: String, commitUserName: String, commitMailAddress: String,
                pullRequestId: Option[Int], buildAuthor: Account, config: CIConfig)(implicit s: Session): Unit = {
