@@ -42,7 +42,7 @@ class CICommitHook extends ReceiveHook
               )
             }
           } else {
-            val pullRequests = PullRequests
+            val pullreqs = PullRequests
               .join(Issues).on { (t1, t2) => t1.byPrimaryKey(t2.userName, t2.repositoryName, t2.issueId) }
               .filter { case (t1, t2) =>
                 (t1.requestUserName === owner.bind) && (t1.requestRepositoryName === repository.bind) &&
@@ -50,11 +50,11 @@ class CICommitHook extends ReceiveHook
               }
               .list
 
-            pullRequests.headOption.foreach { case (pullRequest, issue) =>
-              loadCIConfig(pullRequest.userName, pullRequest.repositoryName).foreach { config =>
+            pullreqs.foreach { case (pullreq, issue) =>
+              loadCIConfig(pullreq.userName, pullreq.repositoryName).foreach { config =>
                 runBuild(
-                  userName            = pullRequest.userName,
-                  repositoryName      = pullRequest.repositoryName,
+                  userName            = pullreq.userName,
+                  repositoryName      = pullreq.repositoryName,
                   buildUserName       = owner,
                   buildRepositoryName = repository,
                   buildBranch         = branch,
@@ -62,7 +62,7 @@ class CICommitHook extends ReceiveHook
                   commitMessage       = revCommit.getShortMessage,
                   commitUserName      = revCommit.getCommitterIdent.getName,
                   commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
-                  pullRequestId       = Some(pullRequest.issueId),
+                  pullRequestId       = Some(pullreq.issueId),
                   pusher              = pusher,
                   config              = config
                 )
