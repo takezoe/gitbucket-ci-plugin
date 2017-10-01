@@ -50,7 +50,7 @@ class CICommitHook extends ReceiveHook
               }
               .list
 
-            pullRequests.headOption.foreach { case (pullRequest, issue) =>
+            pullRequests.foreach { case (pullRequest, issue) =>
               loadCIConfig(pullRequest.userName, pullRequest.repositoryName).foreach { config =>
                 runBuild(
                   userName            = pullRequest.userName,
