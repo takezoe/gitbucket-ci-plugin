@@ -41,33 +41,32 @@ class CICommitHook extends ReceiveHook
                 config              = config
               )
             }
-          } else {
-            val pullreqs = PullRequests
+          }
+          
+          for {
+            (pullreq, issue) <- PullRequests
               .join(Issues).on { (t1, t2) => t1.byPrimaryKey(t2.userName, t2.repositoryName, t2.issueId) }
               .filter { case (t1, t2) =>
                 (t1.requestUserName === owner.bind) && (t1.requestRepositoryName === repository.bind) &&
-                (t1.requestBranch === branch.bind) && (t2.closed === false.bind)
+                  (t1.requestBranch === branch.bind) && (t2.closed === false.bind)
               }
               .list
-
-            pullreqs.foreach { case (pullreq, issue) =>
-              loadCIConfig(pullreq.userName, pullreq.repositoryName).foreach { config =>
-                runBuild(
-                  userName            = pullreq.userName,
-                  repositoryName      = pullreq.repositoryName,
-                  buildUserName       = owner,
-                  buildRepositoryName = repository,
-                  buildBranch         = branch,
-                  sha                 = sha,
-                  commitMessage       = revCommit.getShortMessage,
-                  commitUserName      = revCommit.getCommitterIdent.getName,
-                  commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
-                  pullRequestId       = Some(pullreq.issueId),
-                  pusher              = pusher,
-                  config              = config
-                )
-              }
-            }
+            buildConfig <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
+          } yield {
+            runBuild(
+              userName            = pullreq.userName,
+              repositoryName      = pullreq.repositoryName,
+              buildUserName       = owner,
+              buildRepositoryName = repository,
+              buildBranch         = branch,
+              sha                 = sha,
+              commitMessage       = revCommit.getShortMessage,
+              commitUserName      = revCommit.getCommitterIdent.getName,
+              commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+              pullRequestId       = Some(pullreq.issueId),
+              pusher              = pusher,
+              config              = buildConfig
+            )
           }
         }
       }
