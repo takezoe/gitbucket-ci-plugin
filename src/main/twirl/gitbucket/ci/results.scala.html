@@ -44,6 +44,14 @@
           <td class="text-right">{{job.duration}}</td>
         </tr>
       </table>
+      @if(isEditable){
+        <div>
+          @defining(s"${url(repository)}/build/${repository.repository.defaultBranch}/badge.svg") { url =>
+            <p>Status badge: <img src="@url"></p>
+            <p>You can add status badge by this URL: <code>@url</code> or <a href="@url">this link</a>.</p>
+          }
+        </div>
+      }
     </div>
   }
 }
