@@ -1,11 +1,11 @@
 import javax.servlet.ServletContext
 
 import gitbucket.core.controller.Context
-import gitbucket.core.plugin.{Link, PluginRegistry, ReceiveHook, RepositoryHook}
+import gitbucket.core.plugin._
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.SystemSettingsService
 import io.github.gitbucket.ci.controller.CIController
-import io.github.gitbucket.ci.hook.{CICommitHook, CIRepositoryHook}
+import io.github.gitbucket.ci.hook.{CICommitHook, CIPullRequestHook, CIRepositoryHook}
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.solidbase.migration.LiquibaseMigration
 import io.github.gitbucket.solidbase.model.Version
@@ -36,6 +36,7 @@ class Plugin extends gitbucket.core.plugin.Plugin {
 
   override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())
   override val repositoryHooks: Seq[RepositoryHook] = Seq(new CIRepositoryHook())
+  override val pullRequestHooks: Seq[PullRequestHook] = Seq(new CIPullRequestHook())
 
   // TODO GitBucket should provide a hook method to initialize plugin...
   BuildManager.startBuildManager()
