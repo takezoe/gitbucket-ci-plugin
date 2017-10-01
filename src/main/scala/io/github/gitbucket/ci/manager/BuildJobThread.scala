@@ -89,11 +89,11 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
           throw new BuildJobCancelException()
         }
 
-        sb.append(s"git clone ${job.userName}/${job.repositoryName}\n")
+        sb.append(s"git clone ${job.buildUserName}/${job.buildRepositoryName}\n")
 
         // git clone
         using(Git.cloneRepository()
-          .setURI(getRepositoryDir(job.userName, job.repositoryName).toURI.toString)
+          .setURI(getRepositoryDir(job.buildUserName, job.buildRepositoryName).toURI.toString)
           .setDirectory(dir).call()) { git =>
 
           if(cancelled.get() == true){
