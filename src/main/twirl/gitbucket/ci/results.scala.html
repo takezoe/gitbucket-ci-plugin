@@ -5,6 +5,13 @@
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
+    <div>
+    @defining(s"${url(repository)}/build/${repository.repository.defaultBranch}/badge.svg") { url =>
+      <p class="pc muted">
+        <img src="@url">&nbsp;&nbsp;You can add status badge by this URL: <code>@url</code> or <a href="@url">this link</a>.
+      </p>
+    }
+    </div>
     <div id="app">
       <div class="head" style="height: 24px;">
         @if(isEditable){
@@ -16,9 +23,6 @@
           </div>
         }
         Build history
-      </div>
-      <div>
-        
       </div>
       <table class="table table-hover">
         <tr v-for="job in jobs">
@@ -44,14 +48,6 @@
           <td class="text-right">{{job.duration}}</td>
         </tr>
       </table>
-      @if(isEditable){
-        <div>
-          @defining(s"${url(repository)}/build/${repository.repository.defaultBranch}/badge.svg") { url =>
-            <p>Status badge: <img src="@url"></p>
-            <p>You can add status badge by this URL: <code>@url</code> or <a href="@url">this link</a>.</p>
-          }
-        </div>
-      }
     </div>
   }
 }
