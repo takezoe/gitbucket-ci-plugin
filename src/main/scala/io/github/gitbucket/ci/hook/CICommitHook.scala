@@ -26,7 +26,7 @@ class CICommitHook extends ReceiveHook
 
           if (repositoryInfo.repository.defaultBranch == branch) {
             loadCIConfig(owner, repository).foreach { buildConfig =>
-              if(buildConfig.skipWordsSeq.find { word => revCommit.getFullMessage.contains(word) }.isEmpty){
+              if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
                 runBuild(
                   userName            = owner,
                   repositoryName      = repository,
@@ -55,7 +55,7 @@ class CICommitHook extends ReceiveHook
               .list
             buildConfig <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
           } yield {
-            if(buildConfig.skipWordsSeq.find { word => revCommit.getFullMessage.contains(word) }.isEmpty){
+            if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
               runBuild(
                 userName            = pullreq.userName,
                 repositoryName      = pullreq.repositoryName,
