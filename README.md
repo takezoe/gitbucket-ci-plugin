@@ -15,11 +15,11 @@ However, you must not use this plug-in in public environment because it allows e
 
 In addition, this plug-in is made to just experiment continuous integration on GitBucket easily without complex settings of webhook or Jenkins. It doesn't have flexibility and scalability, and also has a security issue which is mentioned above. Therefore, if you like it and would like to use for your project actually, we recommend to setup Jenkins or other CI tool and move to it.
 
-## Versions
+## Compatibility
 
 Plugin version | GitBucket version
 :--------------|:--------------------
-1.0.x          | 4.17.x -
+1.0.x, 1.1.x   | 4.17.x -
 
 ## Installation
 
@@ -27,4 +27,20 @@ Download jar file from [the release page](https://github.com/takezoe/gitbucket-c
 
 ## Build
 
-Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-1.0.0.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar).
+Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar).
+
+## Release Notes
+
+### 1.1.0
+
+- skip build by commit message
+- re-run build by pull request comment
+
+### 1.0.1
+
+- build status badge
+- fix pull request build bug
+
+### 1.0.0
+
+- First release
