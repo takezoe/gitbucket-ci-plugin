@@ -30,6 +30,14 @@
                   </div>
                 </label>
               </fieldset>
+              <fieldset class="form-group">
+                <label><span class="strong">Skip words</span></label>
+                <input type="text" name="skipWords" class="form-control" value="@config.map(_.skipWords).getOrElse("[ci skip], [skip ci]")">
+              </fieldset>
+              <fieldset class="form-group">
+                <label><span class="strong">Run words</span></label>
+                <input type="text" name="runWords" class="form-control" value="@config.map(_.runWords).getOrElse("ok to test, test this please")">
+              </fieldset>
             </div>
           </div>
         </div>

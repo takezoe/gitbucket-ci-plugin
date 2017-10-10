@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_CONFIG">
+        <column name="SKIP_WORDS" type="varchar(200)" nullable="true"/>
+        <column name="RUN_WORDS" type="varchar(200)" nullable="true"/>
+    </addColumn>
+    <update tableName="CI_CONFIG">
+        <column name="SKIP_WORDS" value="[ci skip], [skip ci]"/>
+        <column name="RUN_WORDS" value="ok to test, test this please"/>
+    </update>
+</changeSet>

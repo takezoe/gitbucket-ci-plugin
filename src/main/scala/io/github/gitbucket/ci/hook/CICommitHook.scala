@@ -25,21 +25,23 @@ class CICommitHook extends ReceiveHook
           val revCommit = JGitUtil.getRevCommitFromId(git, command.getNewId)
 
           if (repositoryInfo.repository.defaultBranch == branch) {
-            loadCIConfig(owner, repository).foreach { config =>
-              runBuild(
-                userName            = owner,
-                repositoryName      = repository,
-                buildUserName       = owner,
-                buildRepositoryName = repository,
-                buildBranch         = branch,
-                sha                 = sha,
-                commitMessage       = revCommit.getShortMessage,
-                commitUserName      = revCommit.getCommitterIdent.getName,
-                commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
-                pullRequestId       = None,
-                pusher              = pusher,
-                config              = config
-              )
+            loadCIConfig(owner, repository).foreach { buildConfig =>
+              if(buildConfig.skipWordsSeq.find { word => revCommit.getFullMessage.contains(word) }.isEmpty){
+                runBuild(
+                  userName            = owner,
+                  repositoryName      = repository,
+                  buildUserName       = owner,
+                  buildRepositoryName = repository,
+                  buildBranch         = branch,
+                  sha                 = sha,
+                  commitMessage       = revCommit.getShortMessage,
+                  commitUserName      = revCommit.getCommitterIdent.getName,
+                  commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+                  pullRequestId       = None,
+                  pusher              = pusher,
+                  config              = buildConfig
+                )
+              }
             }
           }
           
@@ -53,20 +55,22 @@ class CICommitHook extends ReceiveHook
               .list
             buildConfig <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
           } yield {
-            runBuild(
-              userName            = pullreq.userName,
-              repositoryName      = pullreq.repositoryName,
-              buildUserName       = owner,
-              buildRepositoryName = repository,
-              buildBranch         = branch,
-              sha                 = sha,
-              commitMessage       = revCommit.getShortMessage,
-              commitUserName      = revCommit.getCommitterIdent.getName,
-              commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
-              pullRequestId       = Some(pullreq.issueId),
-              pusher              = pusher,
-              config              = buildConfig
-            )
+            if(buildConfig.skipWordsSeq.find { word => revCommit.getFullMessage.contains(word) }.isEmpty){
+              runBuild(
+                userName            = pullreq.userName,
+                repositoryName      = pullreq.repositoryName,
+                buildUserName       = owner,
+                buildRepositoryName = repository,
+                buildBranch         = branch,
+                sha                 = sha,
+                commitMessage       = revCommit.getShortMessage,
+                commitUserName      = revCommit.getCommitterIdent.getName,
+                commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+                pullRequestId       = Some(pullreq.issueId),
+                pusher              = pusher,
+                config              = buildConfig
+              )
+            }
           }
         }
       }
