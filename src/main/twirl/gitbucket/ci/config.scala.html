@@ -17,7 +17,7 @@
               </label>
             </fieldset>
             <div id="buildSettings">
-              <label><span class="strong">Build script</span></label>
+              <label>Build script</label>
               <fieldset>
                 <textarea id="buildScript" name="buildScript" class="form-control" style="height: 100px;">@config.map(_.buildScript)</textarea>
               </fieldset>
@@ -29,6 +29,14 @@
                     Send E-mail to committer and collaborators when build is failed. This feature requires SMTP configuration in GitBucket.
                   </div>
                 </label>
+              </fieldset>
+              <fieldset class="form-group">
+                <label for="skipWords">Skip words</label> (comma-separated words)
+                <input type="text" name="skipWords" class="form-control" id="skipWords" value="@config.map(_.skipWords).getOrElse("[ci skip], [skip ci]")">
+              </fieldset>
+              <fieldset class="form-group">
+                <label for="runWords">Run words</label> (comma-separated words)
+                <input type="text" name="runWords" id="runWords" class="form-control" value="@config.map(_.runWords).getOrElse("ok to test, test this please")">
               </fieldset>
             </div>
           </div>
