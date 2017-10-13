@@ -111,7 +111,18 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
 
           // run script
           val command = prepareBuildScript(buildDir, job.config.buildScript)
-          val process = Process(command, dir).run(new BuildProcessLogger(sb))
+          val process = Process(command, dir,
+            "CI"                   -> "true",
+            "HOME"                 -> buildDir.getAbsolutePath,
+            "CI_BUILD_DIR"         -> buildDir.getAbsolutePath,
+            "CI_BUILD_NUMBER"      -> job.buildNumber.toString,
+            "CI_BUILD_BRANCH"      -> job.buildBranch,
+            "CI_COMMIT_ID"         -> job.sha,
+            "CI_COMMIT_MESSAGE"    -> job.commitMessage,
+            "CI_REPO_SLUG"         -> s"${job.userName}/${job.repositoryName}",
+            "CI_PULL_REQUEST"      -> job.pullRequestId.map(_.toString).getOrElse("false"),
+            "CI_PULL_REQUEST_SLUG" -> (if(job.pullRequestId.isDefined) s"${job.buildUserName}/${job.buildRepositoryName}" else "")
+          ).run(new BuildProcessLogger(sb))
           runningProcess.set(Some(process))
 
           while (process.isAlive()) {
