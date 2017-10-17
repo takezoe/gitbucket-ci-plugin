@@ -1,6 +1,7 @@
 package io.github.gitbucket.ci.controller
 
 import gitbucket.core.controller.ControllerBase
+import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
@@ -80,7 +81,7 @@ class CIController extends ControllerBase
           buildNumber = job.buildNumber,
           status      = JobStatus.Running,
           target      = job.pullRequestId.map("PR #" + _.toString).getOrElse(job.buildBranch),
-          targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
+          targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId, repository),
           sha         = job.sha,
           message     = job.commitMessage,
           userName    = getAccountByMailAddress(job.commitMailAddress).map(_.userName).getOrElse(""),
@@ -97,7 +98,7 @@ class CIController extends ControllerBase
             buildNumber = result.buildNumber,
             status      = JobStatus.Running,
             target      = result.pullRequestId.map("PR #" + _.toString).getOrElse(result.buildBranch),
-            targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId),
+            targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId, repository),
             sha         = result.sha,
             message     = result.commitMessage,
             userName    = getAccountByMailAddress(result.commitMailAddress).map(_.userName).getOrElse(""),
@@ -186,9 +187,9 @@ class CIController extends ControllerBase
   })
 
   private def createTargetUrl(buildUserName: String, buildRepositoryName:String, buildBranch: String,
-                              pullRequestId: Option[Int]): String = {
+                              pullRequestId: Option[Int], repository: RepositoryInfo): String = {
     pullRequestId match {
-      case Some(id) => s"${context.path}/${buildUserName}/${buildRepositoryName}/pull/${id}"
+      case Some(id) => s"${context.path}/${repository.owner}/${repository.name}/pull/${id}"
       case None     => s"${context.path}/${buildUserName}/${buildRepositoryName}/tree/${buildBranch}"
     }
   }
@@ -199,7 +200,7 @@ class CIController extends ControllerBase
         buildNumber = job.buildNumber,
         status      = JobStatus.Waiting,
         target      = job.pullRequestId.map("PR #" + _.toString).getOrElse(job.buildBranch),
-        targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
+        targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId, repository),
         sha         = job.sha,
         message     = job.commitMessage,
         userName    = getAccountByMailAddress(job.commitMailAddress).map(_.userName).getOrElse(""),
@@ -215,7 +216,7 @@ class CIController extends ControllerBase
         buildNumber = job.buildNumber,
         status      = JobStatus.Running,
         target      = job.pullRequestId.map("PR #" + _.toString).getOrElse(job.buildBranch),
-        targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId),
+        targetUrl   = createTargetUrl(job.buildUserName, job.buildRepositoryName, job.buildBranch, job.pullRequestId, repository),
         sha         = job.sha,
         message     = job.commitMessage,
         userName    = getAccountByMailAddress(job.commitMailAddress).map(_.userName).getOrElse(""),
@@ -231,7 +232,7 @@ class CIController extends ControllerBase
         buildNumber = result.buildNumber,
         status      = result.status,
         target      = result.pullRequestId.map("PR #" + _.toString).getOrElse(result.buildBranch),
-        targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId),
+        targetUrl   = createTargetUrl(result.buildUserName, result.buildRepositoryName, result.buildBranch, result.pullRequestId, repository),
         sha         = result.sha,
         message     = result.commitMessage,
         userName    = getAccountByMailAddress(result.commitMailAddress).map(_.userName).getOrElse(""),
