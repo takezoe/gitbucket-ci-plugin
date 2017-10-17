@@ -113,7 +113,7 @@ class CIController extends ControllerBase
     } getOrElse NotFound()
   })
 
-  get("/:owner/:repository/build/output/:buildNumber")(referrersOnly { repository =>
+  get("/:owner/:repository/build/:buildNumber/output")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
 
     getRunningJobs(repository.owner, repository.name)
@@ -156,7 +156,7 @@ class CIController extends ControllerBase
     } getOrElse BadRequest()
   })
 
-  ajaxPost("/:owner/:repository/build/restart/:buildNumber")(writableUsersOnly { repository =>
+  ajaxPost("/:owner/:repository/build/:buildNumber/restart")(writableUsersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
     loadCIConfig(repository.owner, repository.name).flatMap { config =>
       getCIResult(repository.owner, repository.name, buildNumber).map { result =>
@@ -179,7 +179,7 @@ class CIController extends ControllerBase
     } getOrElse BadRequest()
   })
 
-  ajaxPost("/:owner/:repository/build/cancel/:buildNumber")(writableUsersOnly { repository =>
+  ajaxPost("/:owner/:repository/build/:buildNumber/cancel")(writableUsersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
     cancelBuild(repository.owner, repository.name, buildNumber)
     Ok()

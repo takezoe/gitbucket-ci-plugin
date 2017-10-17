@@ -68,12 +68,12 @@ var app = new Vue({
   },
   methods: {
     cancelBuild: function(){
-      $.post('@url(repository)/build/cancel/@status.buildNumber', function(){
+      $.post('@url(repository)/build/@status.buildNumber/cancel', function(){
         // TODO
       });
     },
     restartBuild: function(){
-      $.post('@url(repository)/build/restart/@status.buildNumber', function(){
+      $.post('@url(repository)/build/@status.buildNumber/restart', function(){
         location.href = '@url(repository)/build';
       });
     }
@@ -81,7 +81,7 @@ var app = new Vue({
 });
 
 function fetchJobOutput(){
-  $.get('@url(repository)/build/output/@status.buildNumber', function(data){
+  $.get('@url(repository)/build/@status.buildNumber/output', function(data){
     app.$data.output = data.output;
     if(data.status == '@JobStatus.Running'){
       setTimeout(function(){ fetchJobOutput(); }, 1000)
