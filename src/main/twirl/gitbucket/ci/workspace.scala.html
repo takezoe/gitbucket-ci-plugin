@@ -1,0 +1,36 @@
+@(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
+  buildNumber: Int, pathList: Seq[String], files: Seq[java.io.File])(implicit context: gitbucket.core.controller.Context)
+@import gitbucket.core.view.helpers._
+@gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
+  @gitbucket.core.html.menu("build", repository) {
+    <div class="head" style="height: 24px;">
+      <a href="@url(repository)/build">Build history</a> &gt; <a href="@url(repository)/build/@buildNumber">#@{buildNumber}</a> &gt;
+      @pathList.zipWithIndex.map { case (path, i) =>
+        @if(i == pathList.size - 1){
+          @path /
+        } else {
+          <a href="@url(repository)/build/@buildNumber/@encodeRefName(pathList.take(i + 1).mkString("/"))/">@path</a> /
+        }
+      }
+    </div>
+    <table class="table table-hover">
+    @files.map { file =>
+      @if(file.isDirectory){
+        <tr>
+          <td>
+            <i class="octicon octicon-file-directory"></i>
+            <a href="@url(repository)/build/@buildNumber/@encodeRefName((pathList :+ file.getName).mkString("/"))/">@file.getName</a>
+          </td>
+        </tr>
+      } else {
+        <tr>
+          <td>
+            <i class="octicon octicon-file-text"></i>
+            <a href="@url(repository)/build/@buildNumber/@encodeRefName((pathList :+ file.getName).mkString("/"))">@file.getName</a>
+          </td>
+        </tr>
+      }
+    }
+    </table>
+  }
+}
