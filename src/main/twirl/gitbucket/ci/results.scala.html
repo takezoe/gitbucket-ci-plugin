@@ -5,6 +5,7 @@
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
+    <style>[v-cloak] { display:none }</style>
     <div>
     @defining(s"${url(repository)}/build/${repository.repository.defaultBranch}/badge.svg") { url =>
       <p class="pc muted">
@@ -12,7 +13,7 @@
       </p>
     }
     </div>
-    <div id="app">
+    <div id="app" v-cloak>
       <div class="head" style="height: 24px;">
         @if(isEditable){
           <div class="pull-right">

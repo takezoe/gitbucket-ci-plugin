@@ -6,7 +6,8 @@
 @gitbucket.core.html.main(s"Build #${status.buildNumber} - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
     <script src="@context.path/plugin-assets/ci/vue.js"></script>
-    <div id="app">
+    <style>[v-cloak] { display:none }</style>
+    <div id="app" v-cloak="">
       <div class="head" style="height: 24px;">
         @if(isEditable){
           <div class="pull-right">
