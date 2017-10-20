@@ -46,7 +46,8 @@
             }
           </td>
           <td class="text-right">
-            @status.duration
+            @status.duration<br>
+            <a :href="'@url(repository)/build/@status.buildNumber/workspace/'" class="button-link">Browse files »</a>
           </td>
         </tr>
       </table>

@@ -1,17 +1,20 @@
 package io.github.gitbucket.ci.controller
 
+import java.io.FileInputStream
+
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars.using
-import gitbucket.core.util.{JGitUtil, OwnerAuthenticator, ReferrerAuthenticator, WritableUsersAuthenticator}
+import gitbucket.core.util._
 import gitbucket.core.util.Implicits._
 import gitbucket.core.view.helpers.datetimeAgo
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.CIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import io.github.gitbucket.scalatra.forms._
+import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
 import org.json4s.jackson.Serialization
 import org.scalatra.{BadRequest, Ok}
@@ -184,6 +187,32 @@ class CIController extends ControllerBase
     val buildNumber = params("buildNumber").toInt
     cancelBuild(repository.owner, repository.name, buildNumber)
     Ok()
+  })
+
+  get("/:owner/:repository/build/:buildNumber/workspace/*")(referrersOnly { repository =>
+    val buildNumber = params("buildNumber").toInt
+    val path = multiParams("splat").headOption.getOrElse("")
+    val file = new java.io.File(CIUtils.getBuildDir(repository.owner, repository.name, buildNumber), s"workspace/${path}")
+    if(file.isFile){
+      contentType = FileUtil.getMimeType(path)
+      response.setContentLength(file.length.toInt)
+      using(new FileInputStream(file)){ in =>
+        IOUtils.copy(in, response.getOutputStream)
+      }
+    } else {
+      gitbucket.ci.html.workspace(
+        repository,
+        buildNumber,
+        "workspace" +: path.split("/").filter(_.nonEmpty).toSeq,
+        file.listFiles.toSeq.filterNot(_.getName == ".git").sortWith { (file1, file2) =>
+          (file1.isDirectory, file2.isDirectory) match {
+            case (true , false) => true
+            case (false, true ) => false
+            case _ => file1.getName.compareTo(file2.getName) < 0
+          }
+        }
+      )
+    }
   })
 
   private def createTargetUrl(buildUserName: String, buildRepositoryName:String, buildBranch: String,
