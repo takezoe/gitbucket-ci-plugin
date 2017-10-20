@@ -203,7 +203,7 @@ class CIController extends ControllerBase
         repository,
         buildNumber,
         "workspace" +: path.split("/").filter(_.nonEmpty).toSeq,
-        file.listFiles.toSeq.sortWith { (file1, file2) =>
+        file.listFiles.toSeq.filterNot(_.getName == ".git").sortWith { (file1, file2) =>
           (file1.isDirectory, file2.isDirectory) match {
             case (true , false) => true
             case (false, true ) => false
