@@ -2,7 +2,7 @@ name := "gitbucket-ci-plugin"
 
 organization := "io.github.gitbucket"
 
-version := "1.1.0"
+version := "1.2.0-SNAPSHOT"
 
 scalaVersion := "2.12.2"
 
