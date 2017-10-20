@@ -4,7 +4,7 @@ organization := "io.github.gitbucket"
 
 version := "1.2.0-SNAPSHOT"
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.4"
 
 libraryDependencies ++= Seq(
   "io.github.gitbucket" %% "gitbucket"         % "4.17.0" % "provided",
