@@ -11,7 +11,7 @@ object CIUtils {
   val ContextName = "gitbucket-ci"
 
   def getBuildDir(userName: String, repositoryName: String, buildNumber: Int): File = {
-    val dir = Directory.getRepositoryDir(userName, repositoryName)
+    val dir = Directory.getRepositoryFilesDir(userName, repositoryName)
     new java.io.File(dir, s"build/${buildNumber}")
   }
 
