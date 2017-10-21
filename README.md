@@ -35,7 +35,7 @@ In addition, this plug-in is made to just experiment continuous integration on G
 
 Plugin version | GitBucket version
 :--------------|:--------------------
-1.0.x, 1.1.x   | 4.17.x -
+1.0.x -        | 4.17.x -
 
 ## Installation
 
@@ -46,6 +46,11 @@ Download jar file from [the release page](https://github.com/takezoe/gitbucket-c
 Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar).
 
 ## Release Notes
+
+### 1.2.0
+
+- build workspace browser
+- altered build directories location
 
 ### 1.1.0
 
