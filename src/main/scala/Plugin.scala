@@ -1,14 +1,18 @@
+import java.util
 import javax.servlet.ServletContext
 
 import gitbucket.core.controller.Context
 import gitbucket.core.plugin._
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.SystemSettingsService
+import gitbucket.core.util.Directory
 import io.github.gitbucket.ci.controller.CIController
 import io.github.gitbucket.ci.hook.{CICommitHook, CIPullRequestHook, CIRepositoryHook}
 import io.github.gitbucket.ci.manager.BuildManager
-import io.github.gitbucket.solidbase.migration.LiquibaseMigration
+import io.github.gitbucket.solidbase.migration.{LiquibaseMigration, Migration}
 import io.github.gitbucket.solidbase.model.Version
+import java.io.File
+import org.apache.commons.io.FileUtils
 
 class Plugin extends gitbucket.core.plugin.Plugin {
 
@@ -23,7 +27,20 @@ class Plugin extends gitbucket.core.plugin.Plugin {
       new LiquibaseMigration("update/gitbucket-ci_1.0.0.xml")),
     new Version("1.0.1"),
     new Version("1.1.0",
-      new LiquibaseMigration("update/gitbucket-ci_1.1.0.xml"))
+      new LiquibaseMigration("update/gitbucket-ci_1.1.0.xml")),
+    new Version("1.2.0", (moduleId: String, version: String, context: util.Map[String, AnyRef]) => {
+      // Move repositories/USER/REPO.git/build to repositories/USER/REPO/build
+      for {
+        userDir       <- new File(Directory.RepositoryHome).listFiles(_.isDirectory)
+        repositoryDir <- userDir.listFiles(_.getName.endsWith(".git"))
+        buildDir      <- Seq(new File(repositoryDir, "build")).filter(f => f.exists && f.isDirectory)
+      } yield {
+        val userName = userDir.getName
+        val repositoryName = repositoryDir.getName.replaceFirst("\\.git", "")
+        val newBuildDir = new java.io.File(Directory.getRepositoryFilesDir(userName, repositoryName), "build")
+        FileUtils.moveDirectory(buildDir, newBuildDir)
+      }
+    })
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
