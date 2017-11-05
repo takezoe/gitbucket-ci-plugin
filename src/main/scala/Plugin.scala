@@ -43,7 +43,8 @@ class Plugin extends gitbucket.core.plugin.Plugin {
         val newBuildDir = new java.io.File(Directory.getRepositoryFilesDir(userName, repositoryName), "build")
         FileUtils.moveDirectory(buildDir, newBuildDir)
       }
-    })
+    }),
+    new Version("1.2.1")
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
