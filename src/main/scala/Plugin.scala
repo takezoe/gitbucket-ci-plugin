@@ -31,9 +31,12 @@ class Plugin extends gitbucket.core.plugin.Plugin {
     new Version("1.2.0", (moduleId: String, version: String, context: util.Map[String, AnyRef]) => {
       // Move repositories/USER/REPO.git/build to repositories/USER/REPO/build
       for {
-        userDir       <- new File(Directory.RepositoryHome).listFiles(_.isDirectory)
+        userDir <- {
+          val dir = new File(Directory.RepositoryHome)
+          if(dir.exists && dir.isDirectory) dir.listFiles(_.isDirectory).toSeq else Nil
+        }
         repositoryDir <- userDir.listFiles(_.getName.endsWith(".git"))
-        buildDir      <- Seq(new File(repositoryDir, "build")).filter(f => f.exists && f.isDirectory)
+        buildDir <- Seq(new File(repositoryDir, "build")).filter(f => f.exists && f.isDirectory)
       } yield {
         val userName = userDir.getName
         val repositoryName = repositoryDir.getName.replaceFirst("\\.git", "")
