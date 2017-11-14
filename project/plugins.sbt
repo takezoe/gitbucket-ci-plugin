@@ -1,2 +1,1 @@
-addSbtPlugin("com.typesafe.sbt" % "sbt-twirl" % "1.3.12")
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.5")
+addSbtPlugin("io.github.gitbucket" % "sbt-gitbucket-plugin" % "1.1.0")
