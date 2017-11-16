@@ -1,1 +1,1 @@
-addSbtPlugin("io.github.gitbucket" % "sbt-gitbucket-plugin" % "1.1.0")
+addSbtPlugin("io.github.gitbucket" % "sbt-gitbucket-plugin" % "1.2.0")
