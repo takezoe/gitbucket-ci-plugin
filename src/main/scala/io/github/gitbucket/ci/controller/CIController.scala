@@ -13,7 +13,7 @@ import gitbucket.core.view.helpers.datetimeAgo
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.CIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
-import io.github.gitbucket.scalatra.forms._
+import org.scalatra.forms._
 import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
 import org.json4s.jackson.Serialization

@@ -35,7 +35,8 @@ In addition, this plug-in is made to just experiment continuous integration on G
 
 Plugin version | GitBucket version
 :--------------|:--------------------
-1.0.x -        | 4.17.x -
+1.3.x -        | 4.19.x -
+1.0.x - 1.2.x  | 4.17.x, 4.18.x
 
 ## Installation
 
