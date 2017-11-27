@@ -54,7 +54,7 @@ class CIPullRequestHook extends PullRequestHook
         buildAuthor  <- context.loginAccount
         buildConfig  <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
       } yield {
-        if(buildConfig.runWordsSeq.find(content.contains).isDefined){
+        if(buildConfig.runWordsSeq.find(content.contains).isEmpty){
           val revCommit = using(Git.open(getRepositoryDir(pullreq.requestUserName, pullreq.requestRepositoryName))) { git =>
             val objectId = git.getRepository.resolve(pullreq.commitIdTo)
             JGitUtil.getRevCommitFromId(git, objectId)
