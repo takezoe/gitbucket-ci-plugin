@@ -117,20 +117,20 @@ class CIController extends ControllerBase
     } getOrElse NotFound()
   })
 
-  get("/:owner/:repository/build/:buildNumber/output")(referrersOnly { repository =>
+  ajaxGet("/:owner/:repository/build/:buildNumber/output")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
 
     getRunningJobs(repository.owner, repository.name)
       .find { case (job, sb) => job.buildNumber == buildNumber }
       .map  { case (job, sb) =>
         contentType = formats("json")
-        ApiJobOutput("running", CIUtils.colorize(sb.toString))
+        Serialization.write(ApiJobOutput("running", CIUtils.colorize(sb.toString)))
     } orElse {
       getCIResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map  { result =>
           contentType = formats("json")
-          ApiJobOutput(result.status, CIUtils.colorize(getCIResultOutput(result)))
+          Serialization.write(ApiJobOutput(result.status, CIUtils.colorize(getCIResultOutput(result))))
         }
     } getOrElse NotFound()
   })
