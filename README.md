@@ -48,6 +48,11 @@ Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-as
 
 ## Release Notes
 
+### 1.3.0
+
+- update for Scalatra 2.6
+- fix skipping pull request build bug
+
 ### 1.2.0
 
 - build workspace browser
