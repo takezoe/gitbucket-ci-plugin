@@ -163,7 +163,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
             status              = if(exitValue == 0) JobStatus.Success else JobStatus.Failure,
             buildAuthor         = job.buildAuthor.userName
           ),
-          sb.toString
+          sb.toString,
+          loadCISystemConfig()
         )
 
         createCommitStatus(

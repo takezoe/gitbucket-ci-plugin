@@ -45,7 +45,9 @@ class Plugin extends gitbucket.core.plugin.Plugin {
       }
     }),
     new Version("1.2.1"),
-    new Version("1.3.0")
+    new Version("1.3.0"),
+    new Version("1.4.0",
+      new LiquibaseMigration("update/gitbucket-ci_1.4.0.xml"))
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
@@ -57,6 +59,10 @@ class Plugin extends gitbucket.core.plugin.Plugin {
 
   override val repositorySettingTabs = Seq(
     (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", "settings/build"))
+  )
+
+  override val systemSettingMenus: Seq[(Context) => Option[Link]] = Seq(
+    (ctx: Context) => Some(Link("build", "Build", "admin/build", Some("gear")))
   )
 
   override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())

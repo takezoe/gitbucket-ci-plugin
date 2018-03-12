@@ -47,6 +47,16 @@ object BuildNumberGenerator extends CIService with AccountService with Repositor
 
 trait CIService { self: AccountService with RepositoryService =>
 
+  def saveCISystemConfig(config: CISystemConfig)(implicit s: Session): Unit = {
+    CISystemConfigs.map { t =>
+      (t.maxBuildHistory, t.maxParallelBuilds)
+    }.update((config.maxBuildHistory, config.maxParallelBuilds))
+  }
+
+  def loadCISystemConfig()(implicit s: Session): CISystemConfig = {
+    CISystemConfigs.first
+  }
+
   def saveCIConfig(userName: String, repositoryName: String, config: Option[CIConfig])(implicit s: Session): Unit = {
     CIConfigs.filter { t =>
       (t.userName === userName.bind) && (t.repositoryName === repositoryName.bind)
@@ -138,11 +148,11 @@ trait CIService { self: AccountService with RepositoryService =>
     }.toSeq
   }
 
-  def saveCIResult(result: CIResult, output: String)(implicit s: Session): Unit = {
+  def saveCIResult(result: CIResult, output: String, systemConfig: CISystemConfig)(implicit s: Session): Unit = {
     // Delete older results
     val results = getCIResults(result.userName, result.repositoryName).sortBy(_.buildNumber)
-    if (results.length >= BuildManager.MaxBuildHistoryPerProject){
-      results.take(results.length - BuildManager.MaxBuildHistoryPerProject + 1).foreach { result =>
+    if (results.length >= systemConfig.maxBuildHistory){
+      results.take(results.length - systemConfig.maxBuildHistory + 1).foreach { result =>
         // Delete from database
         CIResults.filter { t =>
           (t.userName       === result.userName.bind) &&
