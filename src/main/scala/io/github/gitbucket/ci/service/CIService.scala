@@ -8,6 +8,7 @@ import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.service.{AccountService, RepositoryService}
 import io.github.gitbucket.ci.util.CIUtils
 import org.apache.commons.io.FileUtils
+import scala.collection.JavaConverters._
 
 case class BuildJob(
   userName: String,
@@ -84,18 +85,17 @@ trait CIService { self: AccountService with RepositoryService =>
   }
 
   def getLatestCIStatus(userName: String, repositoryName: String, branchName: String)(implicit s: Session): String = {
-    import scala.collection.JavaConverters._
     if (BuildManager.queue.iterator.asScala.exists{ job =>
       job.userName == userName && job.repositoryName == repositoryName && job.buildBranch == branchName
     }){
       "waiting"
-    }else if ( BuildManager.threads.exists{ thread =>
+    } else if ( BuildManager.threads.asScala.exists{ thread =>
       thread.runningJob.get.exists { job =>
         job.userName == userName && job.repositoryName == repositoryName && job.buildBranch == branchName
       }
     }){
       "running"
-    }else{
+    } else {
       CIResults.filter { t =>
         (t.userName === userName.bind) && (t.repositoryName === repositoryName.bind) && (t.buildBranch === branchName.bind)
       }.sortBy(_.buildNumber.desc).map{_.status}.firstOption.getOrElse("uknown")
@@ -124,7 +124,7 @@ trait CIService { self: AccountService with RepositoryService =>
   }
 
   def cancelBuild(userName: String, repositoryName: String, buildNumber: Int): Unit = {
-    BuildManager.threads.find { thread =>
+    BuildManager.threads.asScala.find { thread =>
       thread.runningJob.get.exists { job =>
         job.userName == userName && job.repositoryName == repositoryName && job.buildNumber == buildNumber
       }
@@ -134,11 +134,12 @@ trait CIService { self: AccountService with RepositoryService =>
   }
 
   def getRunningJobs(userName: String, repositoryName: String): Seq[(BuildJob, StringBuffer)] = {
-    BuildManager.threads
+    BuildManager.threads.asScala
       .map { thread => (thread, thread.runningJob.get) }
       .collect { case (thread, Some(job)) if(job.userName == userName && job.repositoryName == repositoryName) =>
         (job, thread.sb)
       }
+      .toSeq
   }
 
   def getQueuedJobs(userName: String, repositoryName: String): Seq[BuildJob] = {

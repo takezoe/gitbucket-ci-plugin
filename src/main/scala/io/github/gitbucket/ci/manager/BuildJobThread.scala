@@ -2,7 +2,7 @@ package io.github.gitbucket.ci.manager
 
 import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 import gitbucket.core.model.CommitState
 import gitbucket.core.model.Profile.profile.blockingApi._
@@ -34,11 +34,12 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   val runningProcess = new AtomicReference[Option[Process]](None)
   val runningJob = new AtomicReference[Option[BuildJob]](None)
   val sb = new StringBuffer()
+  val exitThread = new AtomicBoolean(false)
 
   override def run(): Unit = {
     logger.info("Start BuildJobThread-" + this.getId)
     try {
-      while(true){
+      while(!exitThread.get()){
         runBuild(queue.take())
       }
     } catch {

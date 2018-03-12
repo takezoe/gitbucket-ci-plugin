@@ -5,24 +5,30 @@ import io.github.gitbucket.ci.service.BuildJob
 
 object BuildManager {
 
-  val MaxParallelBuilds = 2
-//  val MaxBuildHistoryPerProject = 20
-
   val queue = new LinkedBlockingQueue[BuildJob]()
-
-  // TODO Is it possible to apply MaxParallelBuilds change dynamically?
-  val threads = Range(0, MaxParallelBuilds).map { _ => new BuildJobThread(queue) }
+  val threads = new LinkedBlockingQueue[BuildJobThread]()
 
   def queueBuildJob(job: BuildJob): Unit = {
     queue.add(job)
   }
 
-  def startBuildManager(): Unit = {
-    threads.foreach(_.start())
+  def shutdownBuildManager(): Unit = {
+    threads.forEach(_.interrupt())
   }
 
-  def shutdownBuildManager(): Unit = {
-    threads.foreach(_.interrupt())
+  def setMaxParallelBuilds(maxParallelBuilds: Int): Unit = {
+    if(maxParallelBuilds > threads.size){
+      for(_ <- 1 to maxParallelBuilds - threads.size){
+        val thread = new BuildJobThread(queue)
+        threads.add(thread)
+        thread.start()
+      }
+    } else if (maxParallelBuilds < threads.size){
+      for(_ <- 1 to threads.size - maxParallelBuilds){
+        val thread = threads.poll()
+        thread.exitThread.set(true)
+      }
+    }
   }
 
 }

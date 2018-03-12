@@ -10,6 +10,7 @@ import gitbucket.core.util.SyntaxSugars.using
 import gitbucket.core.util._
 import gitbucket.core.util.Implicits._
 import gitbucket.core.view.helpers.datetimeAgo
+import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.ci.model.{CIConfig, CISystemConfig}
 import io.github.gitbucket.ci.service.CIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
@@ -327,6 +328,7 @@ class CIController extends ControllerBase
 
   post("/admin/build", ciSystemConfigForm)(adminOnly { form =>
     saveCISystemConfig(CISystemConfig(maxBuildHistory = form.maxBuildHistory, maxParallelBuilds = form.maxParallelBuilds))
+    BuildManager.setMaxParallelBuilds(form.maxParallelBuilds)
     redirect("/admin/build")
   })
 
