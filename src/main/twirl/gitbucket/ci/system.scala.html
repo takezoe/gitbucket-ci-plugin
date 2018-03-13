@@ -1,0 +1,27 @@
+@(systemConfig: io.github.gitbucket.ci.model.CISystemConfig)(implicit context: gitbucket.core.controller.Context)
+@gitbucket.core.html.main("Build") {
+  @gitbucket.core.admin.html.menu("build") {
+    <div class="container">
+      <h1 class="system-settings-title">Build configuration</h1>
+      <form action="@context.path/admin/build" method="POST" validate="true" class="form-horizontal" autocomplete="off">
+        <div class="form-group">
+          <label class="control-label col-md-2" for="maxBuildHistory">Max build history</label>
+          <div class="col-md-10">
+            <input type="input" name="maxBuildHistory" id="maxBuildHistory" class="form-control" value="@systemConfig.maxBuildHistory">
+            <span id="error-maxBuildHistory" class="error"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="control-label col-md-2" for="maxParallelBuilds">Max parallel builds</label>
+          <div class="col-md-10">
+            <input type="input" name="maxParallelBuilds" id="maxParallelBuilds" class="form-control" value="@systemConfig.maxParallelBuilds">
+            <span id="error-maxParallelBuilds" class="error"></span>
+          </div>
+        </div>
+        <div class="align-right" style="margin-top: 20px;">
+          <input type="submit" class="btn btn-success" value="Apply changes"/>
+        </div>
+      </form>
+    </div>
+  }
+}

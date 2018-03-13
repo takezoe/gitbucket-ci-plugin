@@ -10,7 +10,8 @@ import gitbucket.core.util.SyntaxSugars.using
 import gitbucket.core.util._
 import gitbucket.core.util.Implicits._
 import gitbucket.core.view.helpers.datetimeAgo
-import io.github.gitbucket.ci.model.CIConfig
+import io.github.gitbucket.ci.manager.BuildManager
+import io.github.gitbucket.ci.model.{CIConfig, CISystemConfig}
 import io.github.gitbucket.ci.service.CIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import org.scalatra.forms._
@@ -48,11 +49,16 @@ object CIController {
     runWords: Option[String]
   )
 
+  case class CISystemConfigForm(
+    maxBuildHistory: Int,
+    maxParallelBuilds: Int
+  )
+
 }
 
 class CIController extends ControllerBase
   with CIService with AccountService with RepositoryService
-  with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator {
+  with ReferrerAuthenticator with WritableUsersAuthenticator with OwnerAuthenticator with AdminAuthenticator {
   import CIController._
 
   val buildConfigForm = mapping(
@@ -62,6 +68,11 @@ class CIController extends ControllerBase
     "skipWords" -> trim(label("Skip words", optional(text()))),
     "runWords" -> trim(label("Run words", optional(text())))
   )(BuildConfigForm.apply)
+
+  val ciSystemConfigForm = mapping(
+    "maxBuildHistory" -> trim(label("Max build history", number())),
+    "maxParallelBuilds" -> trim(label("Max parallel builds", number()))
+  )(CISystemConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
     if(loadCIConfig(repository.owner, repository.name).isDefined){
@@ -310,5 +321,16 @@ class CIController extends ControllerBase
       case _ => """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="98" height="20"><linearGradient id="b" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><clipPath id="a"><rect width="98" height="20" rx="3" fill="#fff"/></clipPath><g clip-path="url(#a)"><path fill="#555" d="M0 0h37v20H0z"/><path fill="#9f9f9f" d="M37 0h61v20H37z"/><path fill="url(#b)" d="M0 0h98v20H0z"/></g><g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11"><text x="18.5" y="15" fill="#010101" fill-opacity=".3">Build</text><text x="18.5" y="14">Build</text><text x="66.5" y="15" fill="#010101" fill-opacity=".3">unknown</text><text x="66.5" y="14">unknown</text></g></svg>"""
     }
   })
+
+  get("/admin/build")(adminOnly {
+    gitbucket.ci.html.system(loadCISystemConfig())
+  })
+
+  post("/admin/build", ciSystemConfigForm)(adminOnly { form =>
+    saveCISystemConfig(CISystemConfig(maxBuildHistory = form.maxBuildHistory, maxParallelBuilds = form.maxParallelBuilds))
+    BuildManager.setMaxParallelBuilds(form.maxParallelBuilds)
+    redirect("/admin/build")
+  })
+
 }
 

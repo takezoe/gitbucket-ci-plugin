@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <createTable tableName="CI_SYSTEM_CONFIG">
+        <column name="MAX_BUILD_HISTORY" type="int" nullable="false"/>
+        <column name="MAX_PARALLEL_BUILDS" type="int" nullable="false"/>
+    </createTable>
+
+    <insert tableName="CI_SYSTEM_CONFIG">
+        <column name="MAX_BUILD_HISTORY" value="20"/>
+        <column name="MAX_PARALLEL_BUILDS" value="2"/>
+    </insert>
+</changeSet>

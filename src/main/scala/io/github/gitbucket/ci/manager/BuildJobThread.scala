@@ -2,7 +2,7 @@ package io.github.gitbucket.ci.manager
 
 import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 import gitbucket.core.model.CommitState
 import gitbucket.core.model.Profile.profile.blockingApi._
@@ -25,7 +25,7 @@ import scala.sys.process.{Process, ProcessLogger}
 import scala.util.control.ControlThrowable
 
 
-class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
+class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlockingQueue[BuildJobThread]) extends Thread
   with CommitStatusService with AccountService with RepositoryService with CIService with SystemSettingsService {
 
   private val logger = LoggerFactory.getLogger(classOf[BuildJobThread])
@@ -34,16 +34,18 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   val runningProcess = new AtomicReference[Option[Process]](None)
   val runningJob = new AtomicReference[Option[BuildJob]](None)
   val sb = new StringBuffer()
+  val continue = new AtomicBoolean(true)
 
   override def run(): Unit = {
     logger.info("Start BuildJobThread-" + this.getId)
     try {
-      while(true){
+      while(continue.get()){
         runBuild(queue.take())
       }
     } catch {
       case _: InterruptedException => cancel()
     }
+    threads.remove(this)
     logger.info("Stop BuildJobThread-" + this.getId)
   }
 
@@ -163,7 +165,8 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
             status              = if(exitValue == 0) JobStatus.Success else JobStatus.Failure,
             buildAuthor         = job.buildAuthor.userName
           ),
-          sb.toString
+          sb.toString,
+          loadCISystemConfig()
         )
 
         createCommitStatus(

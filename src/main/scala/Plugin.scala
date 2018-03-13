@@ -4,17 +4,21 @@ import javax.servlet.ServletContext
 import gitbucket.core.controller.Context
 import gitbucket.core.plugin._
 import gitbucket.core.service.RepositoryService.RepositoryInfo
-import gitbucket.core.service.SystemSettingsService
+import gitbucket.core.service.{AccountService, RepositoryService, SystemSettingsService}
 import gitbucket.core.util.Directory
+import gitbucket.core.model.Profile.profile.blockingApi._
 import io.github.gitbucket.ci.controller.CIController
 import io.github.gitbucket.ci.hook.{CICommitHook, CIPullRequestHook, CIRepositoryHook}
 import io.github.gitbucket.ci.manager.BuildManager
-import io.github.gitbucket.solidbase.migration.{LiquibaseMigration, Migration}
+import io.github.gitbucket.solidbase.migration.LiquibaseMigration
 import io.github.gitbucket.solidbase.model.Version
 import java.io.File
+
+import gitbucket.core.servlet.Database
+import io.github.gitbucket.ci.service.CIService
 import org.apache.commons.io.FileUtils
 
-class Plugin extends gitbucket.core.plugin.Plugin {
+class Plugin extends gitbucket.core.plugin.Plugin with CIService with AccountService with RepositoryService {
 
   override val pluginId: String = "ci"
 
@@ -45,7 +49,9 @@ class Plugin extends gitbucket.core.plugin.Plugin {
       }
     }),
     new Version("1.2.1"),
-    new Version("1.3.0")
+    new Version("1.3.0"),
+    new Version("1.4.0",
+      new LiquibaseMigration("update/gitbucket-ci_1.4.0.xml"))
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
@@ -59,12 +65,17 @@ class Plugin extends gitbucket.core.plugin.Plugin {
     (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", "settings/build"))
   )
 
+  override val systemSettingMenus: Seq[(Context) => Option[Link]] = Seq(
+    (ctx: Context) => Some(Link("build", "Build", "admin/build", Some("gear")))
+  )
+
   override val receiveHooks: Seq[ReceiveHook] = Seq(new CICommitHook())
   override val repositoryHooks: Seq[RepositoryHook] = Seq(new CIRepositoryHook())
   override val pullRequestHooks: Seq[PullRequestHook] = Seq(new CIPullRequestHook())
 
-  // TODO GitBucket should provide a hook method to initialize plugin...
-  BuildManager.startBuildManager()
+  Database() withTransaction { implicit session =>
+    BuildManager.setMaxParallelBuilds(loadCISystemConfig().maxParallelBuilds)
+  }
 
   override def shutdown(registry: PluginRegistry, context: ServletContext,
                         settings: SystemSettingsService.SystemSettings): Unit = {
