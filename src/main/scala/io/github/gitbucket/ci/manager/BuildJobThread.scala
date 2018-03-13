@@ -25,7 +25,7 @@ import scala.sys.process.{Process, ProcessLogger}
 import scala.util.control.ControlThrowable
 
 
-class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
+class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlockingQueue[BuildJobThread]) extends Thread
   with CommitStatusService with AccountService with RepositoryService with CIService with SystemSettingsService {
 
   private val logger = LoggerFactory.getLogger(classOf[BuildJobThread])
@@ -34,17 +34,18 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob]) extends Thread
   val runningProcess = new AtomicReference[Option[Process]](None)
   val runningJob = new AtomicReference[Option[BuildJob]](None)
   val sb = new StringBuffer()
-  val exitThread = new AtomicBoolean(false)
+  val continue = new AtomicBoolean(true)
 
   override def run(): Unit = {
     logger.info("Start BuildJobThread-" + this.getId)
     try {
-      while(!exitThread.get()){
+      while(continue.get()){
         runBuild(queue.take())
       }
     } catch {
       case _: InterruptedException => cancel()
     }
+    threads.remove(this)
     logger.info("Stop BuildJobThread-" + this.getId)
   }
 

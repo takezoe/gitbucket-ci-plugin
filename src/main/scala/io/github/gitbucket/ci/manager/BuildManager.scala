@@ -19,14 +19,19 @@ object BuildManager {
   def setMaxParallelBuilds(maxParallelBuilds: Int): Unit = {
     if(maxParallelBuilds > threads.size){
       for(_ <- 1 to maxParallelBuilds - threads.size){
-        val thread = new BuildJobThread(queue)
+        val thread = new BuildJobThread(queue, threads)
         threads.add(thread)
         thread.start()
       }
     } else if (maxParallelBuilds < threads.size){
+      val i = threads.iterator()
       for(_ <- 1 to threads.size - maxParallelBuilds){
-        val thread = threads.poll()
-        thread.exitThread.set(true)
+        val thread = i.next()
+        if(thread.runningJob.get.isEmpty){
+          thread.interrupt()
+        } else {
+          thread.continue.set(false)
+        }
       }
     }
   }
