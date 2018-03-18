@@ -14,6 +14,7 @@ import io.github.gitbucket.solidbase.migration.LiquibaseMigration
 import io.github.gitbucket.solidbase.model.Version
 import java.io.File
 
+import gitbucket.core.service.SystemSettingsService.SystemSettings
 import gitbucket.core.servlet.Database
 import io.github.gitbucket.ci.service.CIService
 import org.apache.commons.io.FileUtils
@@ -73,9 +74,14 @@ class Plugin extends gitbucket.core.plugin.Plugin with CIService with AccountSer
   override val repositoryHooks: Seq[RepositoryHook] = Seq(new CIRepositoryHook())
   override val pullRequestHooks: Seq[PullRequestHook] = Seq(new CIPullRequestHook())
 
-  Database() withTransaction { implicit session =>
-    BuildManager.setMaxParallelBuilds(loadCISystemConfig().maxParallelBuilds)
+  override def initialize(registry: PluginRegistry, context: ServletContext, settings: SystemSettings): Unit = {
+    super.initialize(registry, context, settings)
+
+    Database() withTransaction { implicit session =>
+      BuildManager.setMaxParallelBuilds(loadCISystemConfig().maxParallelBuilds)
+    }
   }
+
 
   override def shutdown(registry: PluginRegistry, context: ServletContext,
                         settings: SystemSettingsService.SystemSettings): Unit = {
