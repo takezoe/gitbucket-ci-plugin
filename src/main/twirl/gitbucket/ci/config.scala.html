@@ -6,7 +6,7 @@
   @gitbucket.core.html.menu("settings", repository){
     @gitbucket.core.settings.html.menu("build", repository){
       @gitbucket.core.helper.html.information(info)
-      <form action="@url(repository)/settings/build" method="POST" validate="true">
+      <form action="@url(repository)/settings/build" method="POST" validate="true" autocomplete="off">
         <div class="panel panel-default">
           <div class="panel-heading strong">Build</div>
           <div class="panel-body">
@@ -17,10 +17,25 @@
               </label>
             </fieldset>
             <div id="buildSettings">
-              <label>Build script</label>
-              <fieldset>
-                <textarea id="buildScript" name="buildScript" class="form-control" style="height: 100px;">@config.map(_.buildScript)</textarea>
-              </fieldset>
+              <fielset class="form-group">
+                <div>
+                  <span id="error-buildType" class="error"></span>
+                </div>
+                <label>
+                  <input type="radio" name="buildType" value="script" @if(config.exists(_.buildType == "script") || config.isEmpty){checked}>
+                  Build script
+                  <span class="normal muted">(Put arbitrary scripts to build this project)</span>
+                  </label>
+                  <textarea id="buildScript" name="buildScript" class="form-control" style="height: 100px;">@config.filter(_.buildType == "script").map(_.buildScript)</textarea>
+                  <span id="error-buildScript" class="error"></span>
+                  <label>
+                    <input type="radio" name="buildType" value="file" @if(config.exists(_.buildType == "file")){checked}>
+                    Build file
+                    <span class="normal muted">(Specify a script file in your repository to build this project)</span>
+                  </label>
+                  <input id="buildFile" name="buildFile" class="form-control" value="@config.filter(_.buildType == "file").map(_.buildScript)">
+                  <span id="error-buildFile" class="error"></span>
+              </fielset>
               <fieldset class="form-group">
                 <label class="checkbox" for="notification">
                   <input type="checkbox" id="notification" name="notification"@if(config.exists(_.notification)){ checked}/>
@@ -50,8 +65,29 @@
 }
 <script>
 $(function(){
-  $('#enableBuild').change(function(){
-    $('#buildSettings textarea, #buildSettings input').prop('disabled', !$(this).prop('checked'));
-  }).change();
+  $('#enableBuild').change(updateStatus);
+  $('input[name=buildType]').change(updateStatus);
+
+  updateStatus();
 });
+
+function updateStatus(){
+  console.log($('#enableBuild').prop('checked'));
+  if($('#enableBuild').prop('checked')){
+    // Enables radio buttons
+    $('#buildSettings input[type=radio]').prop('disabled', false);
+    // Once disables both fields
+    $('textarea[name=buildScript], input[name=buildFile]').prop('disabled', true);
+    // Enables a field if corresponding radio button has been checked
+    var buildType = $('input[name=buildType]:checked').val();
+    if(buildType == 'script'){
+      $('textarea[name=buildScript]').prop('disabled', false);
+    } else if(buildType == 'file'){
+      $('input[name=buildFile]').prop('disabled', false);
+    }
+  } else {
+    // Disables all fields
+    $('#buildSettings textarea, #buildSettings input').prop('disabled', true);
+  }
+}
 </script>

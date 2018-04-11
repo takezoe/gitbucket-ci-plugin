@@ -43,7 +43,9 @@ object CIController {
 
   case class BuildConfigForm(
     enableBuild: Boolean,
+    buildType: Option[String],
     buildScript: Option[String],
+    buildFile: Option[String],
     notification: Boolean,
     skipWords: Option[String],
     runWords: Option[String]
@@ -63,7 +65,9 @@ class CIController extends ControllerBase
 
   val buildConfigForm = mapping(
     "enableBuild" -> trim(label("Enable build", boolean())),
-    "buildScript" -> trim(label("Build script", optional(text()))),
+    "buildType" -> trim(label("Build type", optionalRequiredIfChecked("enableBuild", text()))),
+    "buildScript" -> trim(label("Build script", optionalRequired(_("buildType") == Seq("script"), text()))),
+    "buildFile" -> trim(label("Build file", optionalRequired(_("buildType") == Seq("file"), text()))),
     "notification" -> trim(label("Notification", boolean())),
     "skipWords" -> trim(label("Skip words", optional(text()))),
     "runWords" -> trim(label("Run words", optional(text())))
@@ -293,12 +297,17 @@ class CIController extends ControllerBase
 
   post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
     if(form.enableBuild){
-      // TODO buildScript is required!!
+      val buildType = form.buildType.getOrElse("script")
       saveCIConfig(repository.owner, repository.name, Some(
         CIConfig(
           repository.owner,
           repository.name,
-          form.buildScript.getOrElse(""),
+          buildType,
+          (buildType match {
+            case "script" => form.buildScript.getOrElse("")
+            case "file" => form.buildFile.getOrElse("")
+            case _ => ""
+          }),
           form.notification,
           form.skipWords,
           form.runWords

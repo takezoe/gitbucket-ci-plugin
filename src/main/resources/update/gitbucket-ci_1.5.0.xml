@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_CONFIG">
+        <column name="BUILD_TYPE" type="varchar(200)" nullable="true"/>
+    </addColumn>
+    <update tableName="CI_CONFIG">
+        <column name="BUILD_TYPE" value="script"/>
+    </update>
+</changeSet>
