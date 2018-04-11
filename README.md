@@ -53,6 +53,7 @@ Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-as
 ### 1.5.0
 
 - Build branches even other than the default branch
+- Support the use of an arbitrary file in the git repository as a build script
 
 ### 1.4.0
 
