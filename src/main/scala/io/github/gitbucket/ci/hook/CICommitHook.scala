@@ -24,27 +24,25 @@ class CICommitHook extends ReceiveHook
           val sha = command.getNewId.name
           val revCommit = JGitUtil.getRevCommitFromId(git, command.getNewId)
 
-          if (repositoryInfo.repository.defaultBranch == branch) {
-            loadCIConfig(owner, repository).foreach { buildConfig =>
-              if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
-                runBuild(
-                  userName            = owner,
-                  repositoryName      = repository,
-                  buildUserName       = owner,
-                  buildRepositoryName = repository,
-                  buildBranch         = branch,
-                  sha                 = sha,
-                  commitMessage       = revCommit.getShortMessage,
-                  commitUserName      = revCommit.getCommitterIdent.getName,
-                  commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
-                  pullRequestId       = None,
-                  pusher              = pusher,
-                  config              = buildConfig
-                )
-              }
+          loadCIConfig(owner, repository).foreach { buildConfig =>
+            if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
+              runBuild(
+                userName            = owner,
+                repositoryName      = repository,
+                buildUserName       = owner,
+                buildRepositoryName = repository,
+                buildBranch         = branch,
+                sha                 = sha,
+                commitMessage       = revCommit.getShortMessage,
+                commitUserName      = revCommit.getCommitterIdent.getName,
+                commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+                pullRequestId       = None,
+                pusher              = pusher,
+                config              = buildConfig
+              )
             }
           }
-          
+
           for {
             (pullreq, issue) <- PullRequests
               .join(Issues).on { (t1, t2) => t1.byPrimaryKey(t2.userName, t2.repositoryName, t2.issueId) }
