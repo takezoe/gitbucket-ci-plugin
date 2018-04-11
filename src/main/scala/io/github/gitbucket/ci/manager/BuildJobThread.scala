@@ -112,7 +112,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
           }
 
           // run script
-          val command = prepareBuildScript(buildDir, job.config.buildScript)
+          val command = prepareBuildScript(buildDir, job.config.buildType, job.config.buildScript)
           val process = Process(command, dir,
             "CI"                   -> "true",
             "HOME"                 -> buildDir.getAbsolutePath,
@@ -256,17 +256,29 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     runningProcess.get.foreach(_.destroy())
   }
 
-  private def prepareBuildScript(buildDir: File, buildScript: String): String = {
-    if(CIUtils.isWindows){
-      val buildFile = new File(buildDir, "build.bat")
-      FileUtils.write(buildFile, buildScript, "UTF-8")
-      buildFile.setExecutable(true)
-      buildFile.getAbsolutePath
-    } else {
-      val buildFile = new File(buildDir, "build.sh")
-      FileUtils.write(buildFile, "#!/bin/sh\n" + buildScript.replaceAll("\r\n", "\n"), "UTF-8")
-      buildFile.setExecutable(true)
-      "../build.sh"
+  private def prepareBuildScript(buildDir: File, buildType: String, buildScript: String): String = {
+    buildType match {
+      case "script" =>
+        if(CIUtils.isWindows){
+          val buildFile = new File(buildDir, "build.bat")
+          FileUtils.write(buildFile, buildScript, "UTF-8")
+          buildFile.setExecutable(true)
+          buildFile.getAbsolutePath
+        } else {
+          val buildFile = new File(buildDir, "build.sh")
+          FileUtils.write(buildFile, "#!/bin/sh\n" + buildScript.replaceAll("\r\n", "\n"), "UTF-8")
+          buildFile.setExecutable(true)
+          "../build.sh"
+        }
+      case "file" =>
+        if(CIUtils.isWindows){
+          val dir = new File(buildDir, "workspace")
+          new File(dir, buildScript).getAbsolutePath
+        } else {
+          "./" + buildScript
+        }
+      case _ =>
+        throw new MatchError("Invalid build type: " + buildType)
     }
   }
 
