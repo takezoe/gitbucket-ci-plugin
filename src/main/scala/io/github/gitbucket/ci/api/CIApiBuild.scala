@@ -2,9 +2,11 @@ package io.github.gitbucket.ci.api
 
 import java.util.Date
 
+import gitbucket.core.api.ApiPath
+
 case class CIApiBuild(
-  vcs_url: String,
-  build_url: String,
+  vcs_url: ApiPath,
+  build_url: ApiPath,
   build_num: Long,
   branch: String,
   vcs_revision: String,
@@ -24,7 +26,7 @@ case class CIApiBuild(
   outcome: String,
   status: String,
   retry_of: String,
-  previous: CIApiPreviousBuild
+  previous: Option[CIApiPreviousBuild]
 )
 
 case class CIApiPreviousBuild(
