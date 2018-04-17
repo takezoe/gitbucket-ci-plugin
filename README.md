@@ -12,7 +12,11 @@ This plug-in allows repository owners to configure build command, and run them a
 - Create a new pull request
 - Push additional commits to the pull request branch
 
+#### Skip and re-run by keywords
+
 You can skip a build by including specific words in the commit message. Moreover you can also re-run the pull request build by adding a comment including specific words. These words can be set at the build settings.
+
+### Variables in build script
 
 In the build script, following environment variables are available:
 
@@ -27,6 +31,8 @@ In the build script, following environment variables are available:
 - `CI_PULL_REQUEST` (pull request id or "false")
 - `CI_PULL_REQUEST_SLUG` ("owner/repo" or "")
 
+### Web API
+
 This plugin has [CircleCI  API v1.1](https://circleci.com/docs/api/v1-reference/) compatible Web API. Supported APIs are below:
 
 - User (`GET /api/circleci/v1.1/me`)
@@ -35,6 +41,8 @@ This plugin has [CircleCI  API v1.1](https://circleci.com/docs/api/v1-reference/
 - Single Build (`GET /api/circleci/v1.1/:owner/:repository/:buildNum`)
 
 While CircleCI API takes the token via query string, in this plugin, `Authorization` header (application token or basic authentication) is available as same as other [GitBucket API](https://github.com/gitbucket/gitbucket/wiki/API-WebHook).
+
+### Cautions
 
 Note that you must not use this plug-in in public environment because it allows executing any commands on a GitBucket instance. It will be **a serious security hole**.
 
