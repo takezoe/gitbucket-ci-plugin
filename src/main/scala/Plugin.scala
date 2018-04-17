@@ -7,7 +7,7 @@ import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService, SystemSettingsService}
 import gitbucket.core.util.Directory
 import gitbucket.core.model.Profile.profile.blockingApi._
-import io.github.gitbucket.ci.controller.CIController
+import io.github.gitbucket.ci.controller.{CIApiController, CIController}
 import io.github.gitbucket.ci.hook.{CICommitHook, CIPullRequestHook, CIRepositoryHook}
 import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.solidbase.migration.LiquibaseMigration
@@ -58,7 +58,7 @@ class Plugin extends gitbucket.core.plugin.Plugin with CIService with AccountSer
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
-  override val controllers = Seq("/*" -> new CIController())
+  override val controllers = Seq("/*" -> new CIController(), "/api/circleci/v1.1/*" -> new CIApiController())
 
   override val repositoryMenus = Seq(
     (repository: RepositoryInfo, context: Context) => Some(Link("build", "Build", "/build", Some("sync")))

@@ -22,6 +22,7 @@ case class BuildJob(
   commitUserName: String,
   commitMailAddress: String,
   pullRequestId: Option[Int],
+  queuedTime: java.util.Date,
   startTime: Option[java.util.Date],
   buildAuthor: Account,
   config: CIConfig
@@ -117,6 +118,7 @@ trait CIService { self: AccountService with RepositoryService =>
       commitUserName      = commitUserName,
       commitMailAddress   = commitMailAddress,
       pullRequestId       = pullRequestId,
+      queuedTime          = new java.util.Date(),
       startTime           = None,
       buildAuthor         = buildAuthor,
       config              = config

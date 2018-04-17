@@ -160,10 +160,13 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
             commitUserName      = job.commitUserName,
             commitMailAddress   = job.commitMailAddress,
             pullRequestId       = job.pullRequestId,
+            queuedTime          = job.queuedTime,
             startTime           = startTime,
             endTime             = endTime,
+            exitCode            = exitValue,
             status              = if(exitValue == 0) JobStatus.Success else JobStatus.Failure,
-            buildAuthor         = job.buildAuthor.userName
+            buildAuthor         = job.buildAuthor.userName,
+            buildScript         = job.config.buildScript
           ),
           sb.toString,
           loadCISystemConfig()
