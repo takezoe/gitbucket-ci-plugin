@@ -4,7 +4,7 @@ import gitbucket.core.util.Implicits._
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
-import gitbucket.core.util.UsersAuthenticator
+import gitbucket.core.util.{Keys, UsersAuthenticator}
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
 
@@ -16,6 +16,7 @@ class CIApiController extends ControllerBase
 
   before("/api/circleci/v1.1/*"){
     contentType = formats("json")
+    request.setAttribute(Keys.Request.APIv3, true)
   }
 
   get("/api/circleci/v1.1/*"){
