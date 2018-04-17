@@ -12,15 +12,16 @@ import org.json4s.jackson.Serialization
 
 object JsonFormat {
 
-  val jsonFormats = Serialization.formats(NoTypeHints) + new CustomSerializer[Date](
-    format =>
-      (
-        {
-          case JString(s) =>
-            Try(Date.from(Instant.parse(s))).getOrElse(throw new MappingException("Can't convert " + s + " to Date"))
-        }, { case x: Date => JString(OffsetDateTime.ofInstant(x.toInstant, ZoneId.of("UTC")).format(parserISO)) }
-      )
-  )
+  val jsonFormats = Serialization.formats(NoTypeHints).preservingEmptyValues +
+    // TODO This serializer should define in core JsonFormat
+    new CustomSerializer[Date](format =>
+      ({ case JString(s) =>
+        Try(Date.from(Instant.parse(s))).getOrElse(throw new MappingException("Can't convert " + s + " to Date"))
+      },
+      { case x: Date =>
+        JString(OffsetDateTime.ofInstant(x.toInstant, ZoneId.of("UTC")).format(parserISO))
+      })
+    )
 
   /**
    * convert object to json string

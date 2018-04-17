@@ -12,11 +12,17 @@ import gitbucket.core.util.{ReferrerAuthenticator, UsersAuthenticator}
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
 
+import scala.collection.convert.WrapAsJava.asJavaCollection
+
 class CIApiController extends ControllerBase
   with UsersAuthenticator
   with AccountService
   with RepositoryService
   with CIService {
+
+  get("/api/circleci/v1.1/*"){
+    NotFound()
+  }
 
   get("/api/circleci/v1.1/me")(usersOnly {
     JsonFormat(Map(
@@ -26,47 +32,25 @@ class CIApiController extends ControllerBase
   })
 
   get("/api/circleci/v1.1/:owner/:repository")(referrersOnly { repository =>
-    val queuedJobs = getQueuedJobs(repository.owner, repository.name).reverse
+    val queuedJobs = getQueuedJobs(repository.owner, repository.name).map { job => CIApiBuild(job) }
+    val runningJobs = getRunningJobs(repository.owner, repository.name).map { case (job, _) => CIApiBuild(job) }
+    val buildResults = getCIResults(repository.owner, repository.name).map { result => CIApiBuild(result) }
+    val results = (queuedJobs ++ runningJobs ++ buildResults).sortBy(_.build_num * -1)
 
-    // TODO
+    // Fill previous property
+    val finalResults = results.zipWithIndex.map { case (result, i) =>
+      if(i < results.size() - 1){
+        val previous = results(i + 1)
+        result.copy(previous = Some(CIApiPreviousBuild(
+          status = previous.status,
+          build_num = previous.build_num
+        )))
+      } else {
+        result
+      }
+    }
 
-    val runningJobs = getRunningJobs(repository.owner, repository.name).reverse
-
-    // TODO
-
-    val buildResults = getCIResults(repository.owner, repository.name).reverse
-    JsonFormat(buildResults.zipWithIndex.map { case (result, i) =>
-      CIApiBuild(
-        vcs_url = ApiPath(s"/git/${result.userName}/${result.repositoryName}"),
-        build_url = ApiPath(s"/${result.userName}/${result.repositoryName}/build/${result.buildNumber}"),
-        build_num = result.buildNumber,
-        branch = result.buildBranch,
-        vcs_revision = result.sha,
-        committer_name = result.commitUserName,
-        committer_email = result.commitMailAddress,
-        subject = result.commitMessage,
-        body = "",
-        why = "gitbucket",
-        dont_build = null,
-        queued_at = result.startTime, // TODO
-        start_time = result.startTime,
-        stop_time = result.endTime,
-        build_time_millis = result.endTime.getTime - result.startTime.getTime,
-        username = result.userName,
-        reponame = result.repositoryName,
-        lifecycle = "finished",
-        outcome = result.status,
-        status = result.status,
-        retry_of = null,
-        previous = if(i < buildResults.size - 1){
-          val previousResult = buildResults(i + 1)
-          Some(CIApiPreviousBuild(
-            status = previousResult.status,
-            build_num = previousResult.buildNumber
-          ))
-        } else None
-      )
-    })
+    JsonFormat(finalResults)
   })
 
   private def referrersOnly(action: (RepositoryInfo) => Any) = {
