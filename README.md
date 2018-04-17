@@ -48,12 +48,24 @@ Download jar file from [the release page](https://github.com/takezoe/gitbucket-c
 
 Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar), or just run `sbt install`.
 
+## Web API
+
+This plugin has [CircleCI  API v1.1](https://circleci.com/docs/api/v1-reference/) compatible Web API. Supported APIs are below:
+
+- User (`GET /api/circleci/v1.1/me`)
+- Recent Builds For a Single Project (`GET /api/circleci/v1.1/:owner/:repository`)
+- Recent Builds For a Project Branch (`GET /api/circleci/v1.1/:owner/:repository/tree/:branch`)
+- Single Build (`GET /api/circleci/v1.1/:owner/:repository/:buildNum`)
+
+Note: While CircleCI API takes the token via query string, in this plugin, `Authorization` header (application token or basic authentication) is available as same as other [GitBucket API](https://github.com/gitbucket/gitbucket/wiki/API-WebHook).
+
 ## Release Notes
 
 ### 1.5.0
 
 - Build branches even other than the default branch
 - Support the use of an arbitrary file in the git repository as a build script
+- Some CircleCI compatible Web API
 
 ### 1.4.0
 
