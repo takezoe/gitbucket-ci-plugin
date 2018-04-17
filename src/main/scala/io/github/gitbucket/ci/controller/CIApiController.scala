@@ -4,7 +4,6 @@ import gitbucket.core.util.Implicits._
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
-import gitbucket.core.util.SyntaxSugars.defining
 import gitbucket.core.util.UsersAuthenticator
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
@@ -14,6 +13,10 @@ class CIApiController extends ControllerBase
   with AccountService
   with RepositoryService
   with CIService {
+
+  before("/api/circleci/v1.1/*"){
+    contentType = formats("json")
+  }
 
   get("/api/circleci/v1.1/*"){
     NotFound()
@@ -58,16 +61,12 @@ class CIApiController extends ControllerBase
   }
 
   private def referrersOnly(action: (RepositoryInfo) => Any) = {
-    {
-      defining(request.paths) { paths =>
-        getRepository(params("owner"), params("repository")).map { repository =>
-          if (isReadable(repository.repository, context.loginAccount)) {
-            action(repository)
-          } else {
-            Unauthorized()
-          }
-        } getOrElse NotFound()
+    getRepository(params("owner"), params("repository")).map { repository =>
+      if (isReadable(repository.repository, context.loginAccount)) {
+        action(repository)
+      } else {
+        Unauthorized()
       }
-    }
+    } getOrElse NotFound()
   }
 }
