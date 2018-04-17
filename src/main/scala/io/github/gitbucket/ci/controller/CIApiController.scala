@@ -1,18 +1,13 @@
 package io.github.gitbucket.ci.controller
 
-import java.util.Date
-
-import gitbucket.core.api.ApiPath
 import gitbucket.core.util.Implicits._
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.SyntaxSugars.defining
-import gitbucket.core.util.{ReferrerAuthenticator, UsersAuthenticator}
+import gitbucket.core.util.UsersAuthenticator
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
-
-import scala.collection.convert.WrapAsJava.asJavaCollection
 
 class CIApiController extends ControllerBase
   with UsersAuthenticator
@@ -32,15 +27,26 @@ class CIApiController extends ControllerBase
   })
 
   get("/api/circleci/v1.1/:owner/:repository")(referrersOnly { repository =>
-    val queuedJobs = getQueuedJobs(repository.owner, repository.name).map { job => CIApiBuild(job) }
-    val runningJobs = getRunningJobs(repository.owner, repository.name).map { case (job, _) => CIApiBuild(job) }
-    val buildResults = getCIResults(repository.owner, repository.name).map { result => CIApiBuild(result) }
-    val results = (queuedJobs ++ runningJobs ++ buildResults).sortBy(_.build_num * -1)
+    JsonFormat(getBuilds(repository.owner, repository.name))
+  })
+
+  get("/api/circleci/v1.1/:owner/:repository/tree/:branch")(referrersOnly { repository =>
+    val branch = params("branch")
+    if(repository.branchList.contains(branch)){
+      JsonFormat(getBuilds(repository.owner, repository.name).filter(_.branch == params("branch")))
+    } else NotFound()
+  })
+
+  private def getBuilds(owner: String, repository: String): Seq[CIApiBuild] = {
+    val queuedJobs = getQueuedJobs(owner, repository).map { job => CIApiBuild(job) }
+    val runningJobs = getRunningJobs(owner, repository).map { case (job, _) => CIApiBuild(job) }
+    val buildResults = getCIResults(owner, repository).map { result => CIApiBuild(result) }
+    val builds = (queuedJobs ++ runningJobs ++ buildResults).sortBy(_.build_num * -1)
 
     // Fill previous property
-    val finalResults = results.zipWithIndex.map { case (result, i) =>
-      if(i < results.size() - 1){
-        val previous = results(i + 1)
+    builds.zipWithIndex.map { case (result, i) =>
+      if(i < builds.size - 1){
+        val previous = builds(i + 1)
         result.copy(previous = Some(CIApiPreviousBuild(
           status = previous.status,
           build_num = previous.build_num
@@ -49,9 +55,7 @@ class CIApiController extends ControllerBase
         result
       }
     }
-
-    JsonFormat(finalResults)
-  })
+  }
 
   private def referrersOnly(action: (RepositoryInfo) => Any) = {
     {
