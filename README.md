@@ -12,7 +12,7 @@ This plug-in allows repository owners to configure build command, and run them a
 - Create a new pull request
 - Push additional commits to the pull request branch
 
-#### Skip and re-run by keywords
+### Skip and re-run by keywords
 
 You can skip a build by including specific words in the commit message. Moreover you can also re-run the pull request build by adding a comment including specific words. These words can be set at the build settings.
 
