@@ -27,6 +27,15 @@ In the build script, following environment variables are available:
 - `CI_PULL_REQUEST` (pull request id or "false")
 - `CI_PULL_REQUEST_SLUG` ("owner/repo" or "")
 
+This plugin has [CircleCI  API v1.1](https://circleci.com/docs/api/v1-reference/) compatible Web API. Supported APIs are below:
+
+- User (`GET /api/circleci/v1.1/me`)
+- Recent Builds For a Single Project (`GET /api/circleci/v1.1/:owner/:repository`)
+- Recent Builds For a Project Branch (`GET /api/circleci/v1.1/:owner/:repository/tree/:branch`)
+- Single Build (`GET /api/circleci/v1.1/:owner/:repository/:buildNum`)
+
+While CircleCI API takes the token via query string, in this plugin, `Authorization` header (application token or basic authentication) is available as same as other [GitBucket API](https://github.com/gitbucket/gitbucket/wiki/API-WebHook).
+
 Note that you must not use this plug-in in public environment because it allows executing any commands on a GitBucket instance. It will be **a serious security hole**.
 
 In addition, this plug-in is made to just experiment continuous integration on GitBucket easily without complex settings of webhook or Jenkins. It doesn't have flexibility and scalability, and also has a security issue which is mentioned above. Therefore, if you like it and would like to use for your project actually, we recommend to setup Jenkins or other CI tool and move to it.
@@ -47,17 +56,6 @@ Download jar file from [the release page](https://github.com/takezoe/gitbucket-c
 ## Build
 
 Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar), or just run `sbt install`.
-
-## Web API
-
-This plugin has [CircleCI  API v1.1](https://circleci.com/docs/api/v1-reference/) compatible Web API. Supported APIs are below:
-
-- User (`GET /api/circleci/v1.1/me`)
-- Recent Builds For a Single Project (`GET /api/circleci/v1.1/:owner/:repository`)
-- Recent Builds For a Project Branch (`GET /api/circleci/v1.1/:owner/:repository/tree/:branch`)
-- Single Build (`GET /api/circleci/v1.1/:owner/:repository/:buildNum`)
-
-Note: While CircleCI API takes the token via query string, in this plugin, `Authorization` header (application token or basic authentication) is available as same as other [GitBucket API](https://github.com/gitbucket/gitbucket/wiki/API-WebHook).
 
 ## Release Notes
 
