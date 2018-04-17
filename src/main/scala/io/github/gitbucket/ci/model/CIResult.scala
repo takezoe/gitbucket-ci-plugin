@@ -1,5 +1,7 @@
 package io.github.gitbucket.ci.model
 
+import io.github.gitbucket.ci.util.JobStatus
+
 trait CIResultComponent { self: gitbucket.core.model.Profile =>
   import profile.api._
   import self._
@@ -18,11 +20,14 @@ trait CIResultComponent { self: gitbucket.core.model.Profile =>
     val commitUserName = column[String]("COMMIT_USER_NAME")
     val commitMailAddress = column[String]("COMMIT_MAIL_ADDRESS")
     val pullRequestId = column[Int]("PULL_REQUEST_ID")
+    val queuedTime = column[java.util.Date]("QUEUED_TIME")
     val startTime = column[java.util.Date]("START_TIME")
     val endTime = column[java.util.Date]("END_TIME")
+    val exitCode = column[Int]("EXIT_CODE")
     val status = column[String]("STATUS")
     val buildAuthor = column[String]("BUILD_AUTHOR")
-    def * = (userName, repositoryName, buildUserName, buildRepositoryName, buildNumber, buildBranch, sha, commitMessage, commitUserName, commitMailAddress, pullRequestId.?, startTime, endTime, status, buildAuthor) <> (CIResult.tupled, CIResult.unapply)
+    val buildScript = column[String]("BUILD_SCRIPT")
+    def * = (userName, repositoryName, buildUserName, buildRepositoryName, buildNumber, buildBranch, sha, commitMessage, commitUserName, commitMailAddress, pullRequestId.?, queuedTime, startTime, endTime, exitCode, status, buildAuthor, buildScript) <> (CIResult.tupled, CIResult.unapply)
   }
 }
 
@@ -38,8 +43,13 @@ case class CIResult(
   commitUserName: String,
   commitMailAddress: String,
   pullRequestId: Option[Int],
+  queuedTime: java.util.Date,
   startTime: java.util.Date,
   endTime: java.util.Date,
+  exitCode: Int,
   status: String,
-  buildAuthor: String
-)
+  buildAuthor: String,
+  buildScript: String
+){
+  lazy val apiStatus = if(status == JobStatus.Success) "success" else "failed"
+}

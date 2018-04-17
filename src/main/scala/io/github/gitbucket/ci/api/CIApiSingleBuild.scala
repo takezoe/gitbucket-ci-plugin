@@ -4,10 +4,9 @@ import java.util.Date
 
 import gitbucket.core.api.ApiPath
 import io.github.gitbucket.ci.model.CIResult
-import io.github.gitbucket.ci.service.BuildJob
 import io.github.gitbucket.ci.util.JobStatus
 
-case class CIApiBuild(
+case class CIApiSingleBuild(
   vcs_url: ApiPath,
   build_url: ApiPath,
   build_num: Long,
@@ -29,39 +28,12 @@ case class CIApiBuild(
   outcome: Option[String],
   status: String,
   retry_of: Option[String],
-  previous: Option[CIApiPreviousBuild]
+  steps: Seq[CIApiSingleBuildStep]
 )
 
-object CIApiBuild {
-  def apply(job: BuildJob): CIApiBuild = {
-    CIApiBuild(
-      vcs_url = ApiPath(s"/git/${job.userName}/${job.repositoryName}"),
-      build_url = ApiPath(s"/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"),
-      build_num = job.buildNumber,
-      branch = job.buildBranch,
-      vcs_revision = job.sha,
-      committer_name = job.commitUserName,
-      committer_email = job.commitMailAddress,
-      subject = job.commitMessage,
-      body = "",
-      why = "gitbucket",
-      dont_build = None,
-      queued_at = job.queuedTime,
-      start_time = job.startTime,
-      stop_time = None,
-      build_time_millis = None,
-      username = job.userName,
-      reponame = job.repositoryName,
-      lifecycle = "running",
-      outcome = None,
-      status = JobStatus.Running,
-      retry_of = None,
-      previous = None
-    )
-  }
-
-  def apply(result: CIResult): CIApiBuild = {
-    CIApiBuild(
+object CIApiSingleBuild {
+  def apply(result: CIResult): CIApiSingleBuild = {
+    CIApiSingleBuild(
       vcs_url = ApiPath(s"/git/${result.userName}/${result.repositoryName}"),
       build_url = ApiPath(s"/${result.userName}/${result.repositoryName}/build/${result.buildNumber}"),
       build_num = result.buildNumber,
@@ -83,12 +55,45 @@ object CIApiBuild {
       outcome = Some(result.apiStatus),
       status = result.apiStatus,
       retry_of = None,
-      previous = None
+      steps = Seq(
+        CIApiSingleBuildStep(
+          name = "build",
+          actions = Seq(
+            CIApiSingleBuildStepAction(
+              bash_command = result.buildScript,
+              run_time_millis = result.endTime.getTime - result.startTime.getTime,
+              start_time = result.startTime,
+              messages = Nil,
+              step = 1,
+              exit_code = result.exitCode,
+              end_time = result.endTime,
+              index = 0,
+              status = result.apiStatus,
+              `type` = "build",
+              failed = if(result.status == JobStatus.Failure) Some(true) else None
+            )
+          )
+        )
+      )
     )
   }
 }
 
-case class CIApiPreviousBuild(
+case class CIApiSingleBuildStep(
+  name: String,
+  actions: Seq[CIApiSingleBuildStepAction]
+)
+
+case class CIApiSingleBuildStepAction(
+  bash_command: String,
+  run_time_millis: Long,
+  start_time: Date,
+  messages: Seq[String],
+  step: Int,
+  exit_code: Int,
+  end_time: Date,
+  index: Int,
   status: String,
-  build_num: Long
+  `type`: String,
+  failed: Option[Boolean]
 )

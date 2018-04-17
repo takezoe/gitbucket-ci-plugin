@@ -5,7 +5,7 @@ import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.{Keys, UsersAuthenticator}
-import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, JsonFormat}
+import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, CIApiSingleBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
 
 class CIApiController extends ControllerBase
@@ -39,6 +39,13 @@ class CIApiController extends ControllerBase
     if(repository.branchList.contains(branch)){
       JsonFormat(getBuilds(repository.owner, repository.name).filter(_.branch == params("branch")))
     } else NotFound()
+  })
+
+  get("/api/circleci/v1.1/:owner/:repository/:build_num")(referrersOnly { repository =>
+    val buildNumber = params("build_num").toInt
+    getCIResult(repository.owner, repository.name, buildNumber).map { result =>
+      JsonFormat(CIApiSingleBuild(result))
+    } getOrElse NotFound()
   })
 
   private def getBuilds(owner: String, repository: String): Seq[CIApiBuild] = {
