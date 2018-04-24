@@ -36,9 +36,13 @@ In the build script, following environment variables are available:
 This plugin has [CircleCI  API v1.1](https://circleci.com/docs/api/v1-reference/) compatible Web API. Supported APIs are below:
 
 - User (`GET /api/circleci/v1.1/me`)
-- Recent Builds For a Single Project (`GET /api/circleci/v1.1/:owner/:repository`)
-- Recent Builds For a Project Branch (`GET /api/circleci/v1.1/:owner/:repository/tree/:branch`)
-- Single Build (`GET /api/circleci/v1.1/:owner/:repository/:buildNum`)
+- Recent Builds For a Single Project (`GET /api/circleci/v1.1/project/gitbucket/:owner/:repository`)
+- Recent Builds For a Project Branch (`GET /api/circleci/v1.1/project/gitbucket/:owner/:repository/tree/:branch`)
+- Single Build (`GET /api/circleci/v1.1/project/gitbucket/:owner/:repository/:buildNum`)
+- Retry a Build (`POST /api/circleci/v1.1/project/gitbucket/:owner/:repository/:buildNum/retry`)
+- Cancel a Build (`POST /api/circleci/v1.1/project/gitbucket/:owner/:repository/:buildNum/cancel`)
+- Trigger a new Build (`POST /api/circleci/v1.1/project/gitbucket/:owner/:repository`)
+- Trigger a new Build with a Branch (`POST /api/circleci/v1.1/project/gitbucket/:owner/:repository/tree/:branch`)
 
 While CircleCI API takes the token via query string, in this plugin, `Authorization` header (application token or basic authentication) is available as same as other [GitBucket API](https://github.com/gitbucket/gitbucket/wiki/API-WebHook).
 
