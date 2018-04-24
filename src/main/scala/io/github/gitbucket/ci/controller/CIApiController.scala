@@ -2,12 +2,10 @@ package io.github.gitbucket.ci.controller
 
 import gitbucket.core.util.Implicits._
 import gitbucket.core.controller.ControllerBase
-import gitbucket.core.model.Role
-import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.SyntaxSugars._
-import gitbucket.core.util.{JGitUtil, Keys, UsersAuthenticator}
+import gitbucket.core.util._
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, CIApiSingleBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
 import org.eclipse.jgit.api.Git
@@ -15,6 +13,8 @@ import org.scalatra.{BadRequest, Ok}
 
 class CIApiController extends ControllerBase
   with UsersAuthenticator
+  with ReferrerAuthenticator
+  with WritableUsersAuthenticator
   with AccountService
   with RepositoryService
   with CIService {
@@ -152,28 +152,4 @@ class CIApiController extends ControllerBase
     }
   }
 
-  private def referrersOnly(action: (RepositoryInfo) => Any) = {
-    getRepository(params("owner"), params("repository")).map { repository =>
-      if (isReadable(repository.repository, context.loginAccount)) {
-        action(repository)
-      } else {
-        Unauthorized()
-      }
-    } getOrElse NotFound()
-  }
-
-  private def writableUsersOnly(action: (RepositoryInfo) => Any) = {
-    getRepository(params("owner"), params("repository")).map { repository =>
-      context.loginAccount match {
-        case Some(x) if (x.isAdmin)                                                          => action(repository)
-        case Some(x) if (params("owner") == x.userName)                                      => action(repository)
-        case Some(x) if (getGroupMembers(repository.owner).exists(_.userName == x.userName)) => action(repository)
-        case Some(x)
-          if (getCollaboratorUserNames(params("owner"), params("repository"), Seq(Role.ADMIN, Role.DEVELOPER))
-            .contains(x.userName)) =>
-          action(repository)
-        case _ => Unauthorized()
-      }
-    } getOrElse NotFound()
-  }
 }
