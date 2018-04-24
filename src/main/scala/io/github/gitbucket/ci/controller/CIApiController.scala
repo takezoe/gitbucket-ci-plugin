@@ -6,7 +6,7 @@ import gitbucket.core.model.Role
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
-import gitbucket.core.util.SyntaxSugars.{defining, using}
+import gitbucket.core.util.SyntaxSugars._
 import gitbucket.core.util.{JGitUtil, Keys, UsersAuthenticator}
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, CIApiSingleBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
