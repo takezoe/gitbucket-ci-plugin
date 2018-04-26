@@ -204,7 +204,18 @@ class CIController extends ControllerBase
     Ok()
   })
 
+  get("/:owner/:repository/build/:buildNumber/workspace")(referrersOnly { repository =>
+    val buildNumber = params("buildNumber").toInt
+    workspace(repository, buildNumber, "")
+  })
+
   get("/:owner/:repository/build/:buildNumber/workspace/*")(referrersOnly { repository =>
+    val buildNumber = params("buildNumber").toInt
+    val path = multiParams("splat").headOption.getOrElse("")
+    workspace(repository, buildNumber, path)
+  })
+
+  private def workspace(repository: RepositoryInfo, buildNumber: Int, path: String) = {
     val buildNumber = params("buildNumber").toInt
     val path = multiParams("splat").headOption.getOrElse("")
     val file = new java.io.File(CIUtils.getBuildDir(repository.owner, repository.name, buildNumber), s"workspace/${path}")
@@ -228,7 +239,7 @@ class CIController extends ControllerBase
         }
       )
     }
-  })
+  }
 
   private def createTargetUrl(buildUserName: String, buildRepositoryName:String, buildBranch: String,
                               pullRequestId: Option[Int], repository: RepositoryInfo): String = {
