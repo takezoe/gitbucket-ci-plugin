@@ -56,6 +56,7 @@ In addition, this plug-in is made to just experiment continuous integration on G
 
 Plugin version | GitBucket version
 :--------------|:--------------------
+1.6.x -        | 4.24.0 -
 1.5.x -        | 4.23.1 -
 1.4.x -        | 4.23.0
 1.3.x -        | 4.19.x -
@@ -71,11 +72,13 @@ Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-as
 
 ## Release Notes
 
+### 1.6.0
+- Some CircleCI compatible Web API
+
 ### 1.5.0
 
 - Build branches even other than the default branch
 - Support the use of an arbitrary file in the git repository as a build script
-- Some CircleCI compatible Web API
 
 ### 1.4.0
 
