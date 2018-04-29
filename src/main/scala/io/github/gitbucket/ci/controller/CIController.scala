@@ -218,7 +218,10 @@ class CIController extends ControllerBase
   private def workspace(repository: RepositoryInfo, buildNumber: Int, path: String) = {
     val buildNumber = params("buildNumber").toInt
     val path = multiParams("splat").headOption.getOrElse("")
-    val file = new java.io.File(CIUtils.getBuildDir(repository.owner, repository.name, buildNumber), s"workspace/${path}")
+    val file = new java.io.File(CIUtils.getBuildDir(
+      repository.owner, repository.name, buildNumber),
+      FileUtil.checkFilename(s"workspace/${path}")
+    )
     if(file.isFile){
       contentType = FileUtil.getMimeType(path)
       response.setContentLength(file.length.toInt)
