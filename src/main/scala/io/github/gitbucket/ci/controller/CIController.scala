@@ -219,8 +219,16 @@ class CIController extends ControllerBase
 
   get("/:owner/:repository/ci-pages/*")(referrersOnly{ repository =>
     val path = multiParams("splat").head
-    val pagesDir = new File(Directory.getRepositoryFilesDir(repository.owner, repository.name), "ci-pages")
-    new File(pagesDir, path)
+    (for( config <- loadCIConfig(repository.owner, repository.name);
+      buildNumber <- getLatestBuildNumberForDefaultBranch(repository);
+         pagesDir <- config.pagesDir
+    ) yield {
+      val buildDir = CIUtils.getBuildDir(repository.owner, repository.name, buildNumber)
+      val workspaceDir = new File(buildDir, "workspace")
+      new File(new File(workspaceDir, pagesDir), path)
+    }).getOrElse{
+      NotFound()
+    }
   })
 
   private def workspace(repository: RepositoryInfo, buildNumber: Int, path: String) = {

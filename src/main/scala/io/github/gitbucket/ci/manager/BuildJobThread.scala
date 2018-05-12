@@ -145,20 +145,6 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
 
       val endTime = new java.util.Date()
 
-      // Copy Build PagesDir to pages dir
-      job.config.pagesDir.map{ configPagesDir =>
-        val buildDir = CIUtils.getBuildDir(job.userName, job.repositoryName, job.buildNumber)
-        val workspaceDir = new File(buildDir, "workspace")
-        val workspacePagesDir = new File(workspaceDir, configPagesDir)
-        val pagesDir = new File(Directory.getRepositoryFilesDir(job.userName, job.repositoryName), "ci-pages")
-
-        if (pagesDir.exists()){
-          FileUtils.deleteDirectory(pagesDir)
-        }
-
-        FileUtils.copyDirectory(workspacePagesDir, pagesDir)
-      }
-
       // Create or update commit status
       Database() withTransaction { implicit session =>
         saveCIResult(
