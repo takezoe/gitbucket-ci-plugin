@@ -53,6 +53,10 @@
                 <label for="runWords">Run words</label> (comma-separated words)
                 <input type="text" name="runWords" id="runWords" class="form-control" value="@config.map(_.runWords).getOrElse("ok to test, test this please")">
               </fieldset>
+              <fieldset class="form-group">
+                <label for="pagesDir">Pages directory</label>
+                <input type="text" name="pagesDir" id="pagesDir" class="form-control" value="@config.map(_.pagesDir).getOrElse("")">
+              </fieldset>
             </div>
           </div>
         </div>
