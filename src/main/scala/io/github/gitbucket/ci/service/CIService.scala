@@ -5,9 +5,11 @@ import io.github.gitbucket.ci.manager.BuildManager
 import io.github.gitbucket.ci.model._
 import io.github.gitbucket.ci.model.Profile._
 import gitbucket.core.model.Profile.profile.blockingApi._
+import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import io.github.gitbucket.ci.util.CIUtils
 import org.apache.commons.io.FileUtils
+
 import scala.collection.JavaConverters._
 
 case class BuildJob(
@@ -101,6 +103,12 @@ trait CIService { self: AccountService with RepositoryService =>
         (t.userName === userName.bind) && (t.repositoryName === repositoryName.bind) && (t.buildBranch === branchName.bind)
       }.sortBy(_.buildNumber.desc).map{_.status}.firstOption.getOrElse("uknown")
     }
+  }
+
+  def getLatestBuildNumberForDefaultBranch(repository: RepositoryInfo)(implicit s: Session): Option[Int] = {
+    CIResults.filter { t =>
+      (t.userName === repository.owner.bind) && (t.repositoryName === repository.name.bind) && (t.buildBranch === repository.repository.defaultBranch.bind)
+    }.sortBy(_.buildNumber.desc).map(_.buildNumber).firstOption
   }
 
   def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,

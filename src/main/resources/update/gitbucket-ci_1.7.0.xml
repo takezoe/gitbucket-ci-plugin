@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_CONFIG">
+        <column name="PAGES_DIR" type="varchar(200)" nullable="true"/>
+    </addColumn>
+</changeSet>

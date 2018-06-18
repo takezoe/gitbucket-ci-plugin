@@ -1,6 +1,6 @@
 package io.github.gitbucket.ci.controller
 
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
@@ -48,7 +48,8 @@ object CIController {
     buildFile: Option[String],
     notification: Boolean,
     skipWords: Option[String],
-    runWords: Option[String]
+    runWords: Option[String],
+    pagesDir: Option[String]
   )
 
   case class CISystemConfigForm(
@@ -70,7 +71,8 @@ class CIController extends ControllerBase
     "buildFile" -> trim(label("Build file", optionalRequired(_("buildType") == Seq("file"), text()))),
     "notification" -> trim(label("Notification", boolean())),
     "skipWords" -> trim(label("Skip words", optional(text()))),
-    "runWords" -> trim(label("Run words", optional(text())))
+    "runWords" -> trim(label("Run words", optional(text()))),
+    "pagesDir" -> trim(label("Pages Directory", optional(text())))
   )(BuildConfigForm.apply)
 
   val ciSystemConfigForm = mapping(
@@ -215,6 +217,20 @@ class CIController extends ControllerBase
     workspace(repository, buildNumber, path)
   })
 
+  get("/:owner/:repository/ci-pages/*")(referrersOnly{ repository =>
+    val path = multiParams("splat").head
+    (for( config <- loadCIConfig(repository.owner, repository.name);
+      buildNumber <- getLatestBuildNumberForDefaultBranch(repository);
+         pagesDir <- config.pagesDir
+    ) yield {
+      val buildDir = CIUtils.getBuildDir(repository.owner, repository.name, buildNumber)
+      val workspaceDir = new File(buildDir, "workspace")
+      new File(new File(workspaceDir, pagesDir), path)
+    }).getOrElse{
+      NotFound()
+    }
+  })
+
   private def workspace(repository: RepositoryInfo, buildNumber: Int, path: String) = {
     val buildNumber = params("buildNumber").toInt
     val path = multiParams("splat").headOption.getOrElse("")
@@ -324,7 +340,8 @@ class CIController extends ControllerBase
           }),
           form.notification,
           form.skipWords,
-          form.runWords
+          form.runWords,
+          form.pagesDir
         )
       ))
     } else {

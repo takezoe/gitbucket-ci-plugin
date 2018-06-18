@@ -10,7 +10,7 @@ import gitbucket.core.service.SystemSettingsService.SystemSettings
 import gitbucket.core.service.{AccountService, CommitStatusService, RepositoryService, SystemSettingsService}
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
-import gitbucket.core.util.Mailer
+import gitbucket.core.util.{Directory, Mailer}
 import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
