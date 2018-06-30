@@ -57,7 +57,8 @@ class Plugin extends gitbucket.core.plugin.Plugin with CIService with AccountSer
       new LiquibaseMigration("update/gitbucket-ci_1.5.0.xml")),
     new Version("1.6.0",
       new LiquibaseMigration("update/gitbucket-ci_1.6.0.xml")),
-    new Version("1.6.1")
+    new Version("1.6.1"),
+    new Version("1.6.2")
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
