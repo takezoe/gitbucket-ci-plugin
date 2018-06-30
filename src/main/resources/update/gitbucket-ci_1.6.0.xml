@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_RESULT">
+        <column name="QUEUED_TIME" type="datetime" nullable="true"/>
+        <column name="EXIT_CODE" type="int" nullable="true"/>
+        <column name="BUILD_SCRIPT" type="text" nullable="false" defaultValue = ""/>
+    </addColumn>
+    <sql>
+        UPDATE CI_RESULT SET QUEUED_TIME = START_TIME
+    </sql>
+    <sql>
+        UPDATE CI_RESULT SET EXIT_CODE = 0 WHERE STATUS = 'success'
+    </sql>
+    <sql>
+        UPDATE CI_RESULT SET EXIT_CODE = -1 WHERE STATUS = 'failure'
+    </sql>
+    <addNotNullConstraint tableName="CI_RESULT" columnName="QUEUED_TIME"/>
+    <addNotNullConstraint tableName="CI_RESULT" columnName="EXIT_CODE"/>
+</changeSet>
