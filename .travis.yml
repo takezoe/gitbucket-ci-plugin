@@ -8,7 +8,3 @@ before_script:
   - sudo /etc/init.d/mysql stop
   - sudo /etc/init.d/postgresql stop
   - sudo chmod +x /usr/local/bin/sbt
-addons:
-  apt:
-    packages:
-    - oracle-java8-installer
