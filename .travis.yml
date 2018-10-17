@@ -1,9 +1,13 @@
-sudo: false
+sudo: true
 language: scala
 jdk:
 - oraclejdk8
 script:
 - sbt test
+before_script:
+  - sudo /etc/init.d/mysql stop
+  - sudo /etc/init.d/postgresql stop
+  - sudo chmod +x /usr/local/bin/sbt
 addons:
   apt:
     packages:
