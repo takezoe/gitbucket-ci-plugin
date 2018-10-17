@@ -3,7 +3,7 @@
     <addColumn tableName="CI_RESULT">
         <column name="QUEUED_TIME" type="datetime" nullable="true"/>
         <column name="EXIT_CODE" type="int" nullable="true"/>
-        <column name="BUILD_SCRIPT" type="text"/>
+        <column name="BUILD_SCRIPT" type="text" nullable="true"/>
     </addColumn>
     <sql>
         UPDATE CI_RESULT SET QUEUED_TIME = START_TIME, BUILD_SCRIPT = ''
@@ -14,7 +14,7 @@
     <sql>
         UPDATE CI_RESULT SET EXIT_CODE = -1 WHERE STATUS = 'failure'
     </sql>
-    <addNotNullConstraint tableName="CI_RESULT" columnName="QUEUED_TIME"/>
-    <addNotNullConstraint tableName="CI_RESULT" columnName="EXIT_CODE"/>
-    <addNotNullConstraint tableName="CI_RESULT" columnName="BUILD_SCRIPT"/>
+    <addNotNullConstraint tableName="CI_RESULT" columnName="QUEUED_TIME" columnDataType="datetime"/>
+    <addNotNullConstraint tableName="CI_RESULT" columnName="EXIT_CODE" columnDataType="int"/>
+    <addNotNullConstraint tableName="CI_RESULT" columnName="BUILD_SCRIPT" columnDataType="text"/>
 </changeSet>
