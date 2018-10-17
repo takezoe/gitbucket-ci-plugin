@@ -1,6 +1,6 @@
 name := "gitbucket-ci-plugin"
 organization := "io.github.gitbucket"
-version := "1.6.3"
+version := "1.6.4"
 scalaVersion := "2.12.6"
 gitbucketVersion := "4.25.0"
 libraryDependencies ++= Seq(
