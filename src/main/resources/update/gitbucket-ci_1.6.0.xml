@@ -3,7 +3,7 @@
     <addColumn tableName="CI_RESULT">
         <column name="QUEUED_TIME" type="datetime" nullable="true"/>
         <column name="EXIT_CODE" type="int" nullable="true"/>
-        <column name="BUILD_SCRIPT" type="text" nullable="true"/>
+        <column name="BUILD_SCRIPT" type="text"/>
     </addColumn>
     <sql>
         UPDATE CI_RESULT SET QUEUED_TIME = START_TIME, BUILD_SCRIPT = ''
