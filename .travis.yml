@@ -3,8 +3,12 @@ language: scala
 jdk:
 - oraclejdk8
 script:
+- git clone https://github.com/gitbucket/gitbucket.git
+- cd gitbucket
+- sbt publishLocal
+- cd ../
 - sbt test
 before_script:
-  - sudo /etc/init.d/mysql stop
-  - sudo /etc/init.d/postgresql stop
-  - sudo chmod +x /usr/local/bin/sbt
+- sudo /etc/init.d/mysql stop
+- sudo /etc/init.d/postgresql stop
+- sudo chmod +x /usr/local/bin/sbt
