@@ -60,7 +60,8 @@ class Plugin extends gitbucket.core.plugin.Plugin with CIService with AccountSer
     new Version("1.6.1"),
     new Version("1.6.2"),
     new Version("1.6.3"),
-    new Version("1.6.4")
+    new Version("1.6.4"),
+    new Version("1.7.0")
   )
 
   override val assetsMappings = Seq("/ci" -> "/gitbucket/ci/assets")
