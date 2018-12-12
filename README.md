@@ -65,7 +65,7 @@ Plugin version | GitBucket version
 
 ## Installation
 
-Download jar file from [the release page](https://github.com/takezoe/gitbucket-ci-plugin/releases) and put into `GITBUCKET_HOME/plugins`.
+Download jar file from [plugin registry](https://plugins.gitbucket-community.org/releases/gitbucket-ci-plugin) and put into `GITBUCKET_HOME/plugins`.
 
 ## Build
 
