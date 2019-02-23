@@ -91,6 +91,8 @@ function updateStatus(){
       $('textarea[name=buildScript]').prop('disabled', false);
     } else if(buildType == 'file'){
       $('input[name=buildFile]').prop('disabled', false);
+    } else if(buildType == 'docker'){
+      $('input[name=dockerfile').prop('disabled', false);
     }
   } else {
     // Disables all fields
