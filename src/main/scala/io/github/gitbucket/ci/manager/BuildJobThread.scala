@@ -229,7 +229,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
 
     val exitValue = process.exitValue()
     if(exitValue != 0){
-      sb.append(s"EXIT CODE: ${exitValue}")
+      sb.append(s"EXIT CODE: ${exitValue}\n")
     }
     exitValue
   }
@@ -253,8 +253,10 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val buildContainerCommand = s"${dockerCommand} build -f ${job.config.buildScript} -t ${tagName} ${workspaceDir.getAbsolutePath}"
     val runContainerCommand = s"${dockerCommand} run --rm --name ${containerName} ${tagName}"
 
+    sb.append(s"${buildContainerCommand}\n")
     val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand)
     if (buildResult == 0){
+      sb.append(s"${runContainerCommand}\n")
       runProcess(job, buildDir, workspaceDir, runContainerCommand)
     }else{
       buildResult
