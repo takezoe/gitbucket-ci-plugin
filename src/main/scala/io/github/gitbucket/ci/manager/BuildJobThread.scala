@@ -221,7 +221,11 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       Thread.sleep(1000)
     }
 
-    process.exitValue()
+    val exitValue = process.exitValue()
+    if(exitValue != 0){
+      sb.append(s"EXIT CODE: ${exitValue}")
+    }
+    exitValue
   }
 
   private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
@@ -236,7 +240,20 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     runProcess(job, buildDir, workspaceDir, command)
   }
 
-  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = ???
+  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
+    val tagName = s"${job.buildUserName}/${job.buildRepositoryName}:${job.sha.substring(0, 8)}"
+    val containerName = s"${job.buildUserName}-${job.buildRepositoryName}-${job.buildNumber}"
+
+    val buildContainerCommand = s"docker build -f ${job.config.buildScript} -t ${tagName} ${workspaceDir.getAbsolutePath}"
+    val runContainerCommand = s"docker run --rm --name ${containerName} ${tagName}"
+
+    val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand)
+    if (buildResult == 0){
+      runProcess(job, buildDir, workspaceDir, runContainerCommand)
+    }else{
+      buildResult
+    }
+  }
 
   private def createMailSubject(job: BuildJob): String = {
     val sb = new StringBuilder()
