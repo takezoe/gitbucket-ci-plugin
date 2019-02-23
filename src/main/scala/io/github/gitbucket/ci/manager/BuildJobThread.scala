@@ -115,7 +115,9 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
             case "script" =>
               runScriptJob(job, buildDir, dir)
             case "file" =>
-              runScriptJob(job, buildDir, dir)
+              runFileJob(job, buildDir, dir)
+            case "docker" =>
+              runDockerJob(job, buildDir, dir)
             case _ =>
               throw new MatchError("Invalid build type: " + job.config.buildType)
           }
@@ -224,15 +226,17 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
 
   private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
     // run script
-    val command = prepareBuildScript(buildDir, job.config.buildType, job.config.buildScript)
+    val command = prepareBuildScript(buildDir, job.config.buildScript)
     runProcess(job, buildDir, workspaceDir, command)
   }
 
-  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File) = {
+  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
     // run script
-    val command = prepareBuildFile(buildDir, job.config.buildType, job.config.buildScript)
+    val command = prepareBuildFile(buildDir, job.config.buildScript)
     runProcess(job, buildDir, workspaceDir, command)
   }
+
+  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = ???
 
   private def createMailSubject(job: BuildJob): String = {
     val sb = new StringBuilder()
@@ -280,7 +284,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     runningProcess.get.foreach(_.destroy())
   }
 
-  private def prepareBuildScript(buildDir: File, buildType: String, buildScript: String): String = {
+  private def prepareBuildScript(buildDir: File, buildScript: String): String = {
     if(CIUtils.isWindows){
       val buildFile = new File(buildDir, "build.bat")
       FileUtils.write(buildFile, buildScript, "UTF-8")
@@ -294,7 +298,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     }
   }
 
-  private def prepareBuildFile(buildDir: File, buildType: String, buildScript: String): String = {
+  private def prepareBuildFile(buildDir: File, buildScript: String): String = {
     if(CIUtils.isWindows){
       val dir = new File(buildDir, "workspace")
       new File(dir, buildScript).getAbsolutePath

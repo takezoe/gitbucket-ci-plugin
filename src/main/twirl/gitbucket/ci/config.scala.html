@@ -35,6 +35,13 @@
                   </label>
                   <input id="buildFile" name="buildFile" class="form-control" value="@config.filter(_.buildType == "file").map(_.buildScript)">
                   <span id="error-buildFile" class="error"></span>
+                <label>
+                  <input type="radio" name="buildType" value="docker" @if(config.exists(_.buildType == "docker")){checked}>
+                  Build in docker
+                  <span class="normal muted">(Specify a Dockerfile in your repository to build this project)</span>
+                </label>
+                <input id="dockerfile" name="dockerfile" class="form-control" value="@config.filter(_.buildType == "docker").map(_.buildScript)">
+                <span id="error-dockerfile" class="error"></span>
               </fielset>
               <fieldset class="form-group">
                 <label class="checkbox" for="notification">

@@ -46,6 +46,7 @@ object CIController {
     buildType: Option[String],
     buildScript: Option[String],
     buildFile: Option[String],
+    dockerfile: Option[String],
     notification: Boolean,
     skipWords: Option[String],
     runWords: Option[String]
@@ -68,6 +69,7 @@ class CIController extends ControllerBase
     "buildType" -> trim(label("Build type", optionalRequiredIfChecked("enableBuild", text()))),
     "buildScript" -> trim(label("Build script", optionalRequired(_("buildType") == Seq("script"), text()))),
     "buildFile" -> trim(label("Build file", optionalRequired(_("buildType") == Seq("file"), text()))),
+    "dockerfile" -> trim(label("Dockerfile", optionalRequired(_("buildType") == Seq("docker"), text()))),
     "notification" -> trim(label("Notification", boolean())),
     "skipWords" -> trim(label("Skip words", optional(text()))),
     "runWords" -> trim(label("Run words", optional(text())))
@@ -320,6 +322,7 @@ class CIController extends ControllerBase
           (buildType match {
             case "script" => form.buildScript.getOrElse("")
             case "file" => form.buildFile.getOrElse("")
+            case "docker" => "Dockerfile"
             case _ => ""
           }),
           form.notification,
