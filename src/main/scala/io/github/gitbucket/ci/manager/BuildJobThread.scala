@@ -65,7 +65,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       s"${baseUrl}/${job.userName}/${job.repositoryName}/build/${job.buildNumber}"
     }
 
-    Database() withTransaction { implicit session =>
+    val systemCIConfig = Database() withTransaction { implicit session =>
       createCommitStatus(
         userName       = job.userName,
         repositoryName = job.repositoryName,
@@ -77,7 +77,9 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
         now            = new java.util.Date(),
         creator        = job.buildAuthor // TODO right??
       )
+      loadCISystemConfig()
     }
+    val dockerCommand = systemCIConfig.dockerCommand.getOrElse("docker")
 
     try {
       val exitValue = try {
@@ -117,7 +119,11 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
             case "file" =>
               runFileJob(job, buildDir, dir)
             case "docker" =>
-              runDockerJob(job, buildDir, dir)
+              if(systemCIConfig.enableDocker){
+                runDockerJob(job, buildDir, dir, dockerCommand)
+              }else{
+                throw new RuntimeException("Docker job is disabled.")
+              }
             case _ =>
               throw new MatchError("Invalid build type: " + job.config.buildType)
           }
@@ -240,12 +246,12 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     runProcess(job, buildDir, workspaceDir, command)
   }
 
-  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
+  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String): Int = {
     val tagName = s"${job.buildUserName}/${job.buildRepositoryName}:${job.sha.substring(0, 8)}"
     val containerName = s"${job.buildUserName}-${job.buildRepositoryName}-${job.buildNumber}"
 
-    val buildContainerCommand = s"docker build -f ${job.config.buildScript} -t ${tagName} ${workspaceDir.getAbsolutePath}"
-    val runContainerCommand = s"docker run --rm --name ${containerName} ${tagName}"
+    val buildContainerCommand = s"${dockerCommand} build -f ${job.config.buildScript} -t ${tagName} ${workspaceDir.getAbsolutePath}"
+    val runContainerCommand = s"${dockerCommand} run --rm --name ${containerName} ${tagName}"
 
     val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand)
     if (buildResult == 0){

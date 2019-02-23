@@ -54,7 +54,9 @@ object CIController {
 
   case class CISystemConfigForm(
     maxBuildHistory: Int,
-    maxParallelBuilds: Int
+    maxParallelBuilds: Int,
+    enableDocker: Boolean,
+    dockerCommand: Option[String]
   )
 
 }
@@ -77,7 +79,9 @@ class CIController extends ControllerBase
 
   val ciSystemConfigForm = mapping(
     "maxBuildHistory" -> trim(label("Max build history", number())),
-    "maxParallelBuilds" -> trim(label("Max parallel builds", number()))
+    "maxParallelBuilds" -> trim(label("Max parallel builds", number())),
+    "enableDocker" -> trim(label("Enable docker", boolean())),
+    "dockerCommand" -> trim(label("Docker command", optional(text())))
   )(CISystemConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
@@ -308,7 +312,7 @@ class CIController extends ControllerBase
   })
 
   get("/:owner/:repository/settings/build")(ownerOnly { repository =>
-    gitbucket.ci.html.config(repository, loadCIConfig(repository.owner, repository.name), flash.get("info"))
+    gitbucket.ci.html.config(repository, loadCIConfig(repository.owner, repository.name), loadCISystemConfig(), flash.get("info"))
   })
 
   post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
@@ -353,7 +357,7 @@ class CIController extends ControllerBase
   })
 
   post("/admin/build", ciSystemConfigForm)(adminOnly { form =>
-    saveCISystemConfig(CISystemConfig(maxBuildHistory = form.maxBuildHistory, maxParallelBuilds = form.maxParallelBuilds))
+    saveCISystemConfig(CISystemConfig(maxBuildHistory = form.maxBuildHistory, maxParallelBuilds = form.maxParallelBuilds, enableDocker=form.enableDocker, dockerCommand=form.dockerCommand))
     BuildManager.setMaxParallelBuilds(form.maxParallelBuilds)
     redirect("/admin/build")
   })
