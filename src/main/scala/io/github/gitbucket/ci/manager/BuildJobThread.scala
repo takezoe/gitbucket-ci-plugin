@@ -111,27 +111,14 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
             throw new BuildJobCancelException()
           }
 
-          // run script
-          val command = prepareBuildScript(buildDir, job.config.buildType, job.config.buildScript)
-          val process = Process(command, dir,
-            "CI"                   -> "true",
-            "HOME"                 -> buildDir.getAbsolutePath,
-            "CI_BUILD_DIR"         -> buildDir.getAbsolutePath,
-            "CI_BUILD_NUMBER"      -> job.buildNumber.toString,
-            "CI_BUILD_BRANCH"      -> job.buildBranch,
-            "CI_COMMIT_ID"         -> job.sha,
-            "CI_COMMIT_MESSAGE"    -> job.commitMessage,
-            "CI_REPO_SLUG"         -> s"${job.userName}/${job.repositoryName}",
-            "CI_PULL_REQUEST"      -> job.pullRequestId.map(_.toString).getOrElse("false"),
-            "CI_PULL_REQUEST_SLUG" -> (if(job.pullRequestId.isDefined) s"${job.buildUserName}/${job.buildRepositoryName}" else "")
-          ).run(new BuildProcessLogger(sb))
-          runningProcess.set(Some(process))
-
-          while (process.isAlive()) {
-            Thread.sleep(1000)
+          job.config.buildType match {
+            case "script" =>
+              runScriptJob(job, buildDir, dir)
+            case "file" =>
+              runScriptJob(job, buildDir, dir)
+            case _ =>
+              throw new MatchError("Invalid build type: " + job.config.buildType)
           }
-
-          process.exitValue()
         }
       } catch {
         case e: Exception => {
@@ -213,6 +200,40 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     }
   }
 
+  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String): Int = {
+    val process = Process(command, workspaceDir,
+      "CI" -> "true",
+      "HOME" -> buildDir.getAbsolutePath,
+      "CI_BUILD_DIR" -> buildDir.getAbsolutePath,
+      "CI_BUILD_NUMBER" -> job.buildNumber.toString,
+      "CI_BUILD_BRANCH" -> job.buildBranch,
+      "CI_COMMIT_ID" -> job.sha,
+      "CI_COMMIT_MESSAGE" -> job.commitMessage,
+      "CI_REPO_SLUG" -> s"${job.userName}/${job.repositoryName}",
+      "CI_PULL_REQUEST" -> job.pullRequestId.map(_.toString).getOrElse("false"),
+      "CI_PULL_REQUEST_SLUG" -> (if (job.pullRequestId.isDefined) s"${job.buildUserName}/${job.buildRepositoryName}" else "")
+    ).run(new BuildProcessLogger(sb))
+    runningProcess.set(Some(process))
+
+    while (process.isAlive()) {
+      Thread.sleep(1000)
+    }
+
+    process.exitValue()
+  }
+
+  private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
+    // run script
+    val command = prepareBuildScript(buildDir, job.config.buildType, job.config.buildScript)
+    runProcess(job, buildDir, workspaceDir, command)
+  }
+
+  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File) = {
+    // run script
+    val command = prepareBuildFile(buildDir, job.config.buildType, job.config.buildScript)
+    runProcess(job, buildDir, workspaceDir, command)
+  }
+
   private def createMailSubject(job: BuildJob): String = {
     val sb = new StringBuilder()
 
@@ -260,31 +281,27 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
   }
 
   private def prepareBuildScript(buildDir: File, buildType: String, buildScript: String): String = {
-    buildType match {
-      case "script" =>
-        if(CIUtils.isWindows){
-          val buildFile = new File(buildDir, "build.bat")
-          FileUtils.write(buildFile, buildScript, "UTF-8")
-          buildFile.setExecutable(true)
-          buildFile.getAbsolutePath
-        } else {
-          val buildFile = new File(buildDir, "build.sh")
-          FileUtils.write(buildFile, "#!/bin/sh\n" + buildScript.replaceAll("\r\n", "\n"), "UTF-8")
-          buildFile.setExecutable(true)
-          "../build.sh"
-        }
-      case "file" =>
-        if(CIUtils.isWindows){
-          val dir = new File(buildDir, "workspace")
-          new File(dir, buildScript).getAbsolutePath
-        } else {
-          "./" + buildScript
-        }
-      case _ =>
-        throw new MatchError("Invalid build type: " + buildType)
+    if(CIUtils.isWindows){
+      val buildFile = new File(buildDir, "build.bat")
+      FileUtils.write(buildFile, buildScript, "UTF-8")
+      buildFile.setExecutable(true)
+      buildFile.getAbsolutePath
+    } else {
+      val buildFile = new File(buildDir, "build.sh")
+      FileUtils.write(buildFile, "#!/bin/sh\n" + buildScript.replaceAll("\r\n", "\n"), "UTF-8")
+      buildFile.setExecutable(true)
+      "../build.sh"
     }
   }
 
+  private def prepareBuildFile(buildDir: File, buildType: String, buildScript: String): String = {
+    if(CIUtils.isWindows){
+      val dir = new File(buildDir, "workspace")
+      new File(dir, buildScript).getAbsolutePath
+    } else {
+      "./" + buildScript
+    }
+  }
 }
 
 /**
