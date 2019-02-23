@@ -322,7 +322,7 @@ class CIController extends ControllerBase
           (buildType match {
             case "script" => form.buildScript.getOrElse("")
             case "file" => form.buildFile.getOrElse("")
-            case "docker" => "Dockerfile"
+            case "docker" => form.dockerfile.getOrElse("")
             case _ => ""
           }),
           form.notification,
