@@ -11,7 +11,9 @@ trait CISystemConfigComponent { self: gitbucket.core.model.Profile =>
     val maxParallelBuilds = column[Int]("MAX_PARALLEL_BUILDS")
     val enableDocker = column[Boolean]("ENABLE_DOCKER")
     val dockerCommand = column[String]("DOCKER_COMMAND")
-    def * = (maxBuildHistory, maxParallelBuilds, enableDocker, dockerCommand.?) <> (CISystemConfig.tupled, CISystemConfig.unapply)
+    val enableDockerCompose = column[Boolean]("ENABLE_DOCKER_COMPOSE")
+    val dockerComposeCommand = column[String]("DOCKER_COMPOSE_COMMAND")
+    def * = (maxBuildHistory, maxParallelBuilds, enableDocker, dockerCommand.?, enableDockerCompose, dockerComposeCommand.?) <> (CISystemConfig.tupled, CISystemConfig.unapply)
   }
 }
 
@@ -19,5 +21,7 @@ case class CISystemConfig(
   maxBuildHistory: Int,
   maxParallelBuilds: Int,
   enableDocker: Boolean,
-  dockerCommand: Option[String]
+  dockerCommand: Option[String],
+  enableDockerCompose: Boolean,
+  dockerComposeCommand: Option[String]
 )

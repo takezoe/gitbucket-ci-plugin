@@ -80,6 +80,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       loadCISystemConfig()
     }
     val dockerCommand = systemCIConfig.dockerCommand.getOrElse("docker")
+    val dockerComposeCommand = systemCIConfig.dockerComposeCommand.getOrElse("docker-compose")
 
     try {
       val exitValue = try {
@@ -121,6 +122,12 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
             case "docker" =>
               if(systemCIConfig.enableDocker){
                 runDockerJob(job, buildDir, dir, dockerCommand)
+              }else{
+                throw new RuntimeException("Docker job is disabled.")
+              }
+            case "docker-compose" =>
+              if(systemCIConfig.enableDocker){
+                runDockerComposeJob(job, buildDir, dir, dockerComposeCommand)
               }else{
                 throw new RuntimeException("Docker job is disabled.")
               }
@@ -265,6 +272,28 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       val rmImageCommand = s"${dockerCommand} rmi --force ${imageId}"
       sb.append(s"$rmImageCommand\n")
       runProcess(job, buildDir, workspaceDir, rmImageCommand)
+
+      exitCode
+    }else{
+      buildResult
+    }
+  }
+
+  private def runDockerComposeJob(job: BuildJob, buildDir: File, workspaceDir: File, composeCommand: String): Int = {
+    val composeFile = if(job.config.buildScript.nonEmpty){job.config.buildScript}else{"docker-compose.yml"}
+    val containerName = s"gitbucket_ci_${job.buildUserName}_${job.buildRepositoryName}_${job.buildNumber}"
+
+    val buildCommand = s"${composeCommand} -f ${composeFile} build"
+    // TODO: specify service name (currently consider as "ci")
+    val runCommand = s"${composeCommand} -f ${composeFile} run --name ${containerName} -T --rm ci"
+    val downCommand = s"${composeCommand} -f ${composeFile} down --rmi all"
+
+    sb.append(s"${buildCommand}\n")
+    val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand)
+    if(buildCommand != 0){
+      sb.append(s"${runCommand}\n")
+      val exitCode = runProcess(job, buildDir, workspaceDir, runCommand)
+      runProcess(job, buildDir, workspaceDir, downCommand)
 
       exitCode
     }else{

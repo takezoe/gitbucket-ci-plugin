@@ -51,8 +51,8 @@ trait CIService { self: AccountService with RepositoryService =>
 
   def saveCISystemConfig(config: CISystemConfig)(implicit s: Session): Unit = {
     CISystemConfigs.map { t =>
-      (t.maxBuildHistory, t.maxParallelBuilds, t.enableDocker, t.dockerCommand.?)
-    }.update((config.maxBuildHistory, config.maxParallelBuilds, config.enableDocker, config.dockerCommand))
+      (t.maxBuildHistory, t.maxParallelBuilds, t.enableDocker, t.dockerCommand.?, t.enableDockerCompose, t.dockerComposeCommand.?)
+    }.update((config.maxBuildHistory, config.maxParallelBuilds, config.enableDocker, config.dockerCommand, config.enableDockerCompose, config.dockerComposeCommand))
   }
 
   def loadCISystemConfig()(implicit s: Session): CISystemConfig = {
