@@ -247,17 +247,26 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
   }
 
   private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String): Int = {
-    val tagName = s"${job.buildUserName}/${job.buildRepositoryName}:${job.sha.substring(0, 8)}"
+    val tagName = s"gitbucket-ci/${job.buildUserName}/${job.buildRepositoryName}:${job.sha.substring(0, 7)}"
     val containerName = s"${job.buildUserName}-${job.buildRepositoryName}-${job.buildNumber}"
+    val dockerfile = if(job.config.buildScript.nonEmpty){job.config.buildScript}else{"Dockerfile"}
 
-    val buildContainerCommand = s"${dockerCommand} build -f ${job.config.buildScript} -t ${tagName} ${workspaceDir.getAbsolutePath}"
+    val buildContainerCommand = s"${dockerCommand} build -f ${dockerfile} -t ${tagName} ${workspaceDir.getAbsolutePath}"
     val runContainerCommand = s"${dockerCommand} run --rm --name ${containerName} ${tagName}"
 
     sb.append(s"${buildContainerCommand}\n")
     val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand)
     if (buildResult == 0){
       sb.append(s"${runContainerCommand}\n")
-      runProcess(job, buildDir, workspaceDir, runContainerCommand)
+      val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand)
+
+      val imageId = Process(s"""${dockerCommand} images --format "{{.ID}}" ${tagName}""").!!.stripLineEnd
+      println(imageId)
+      val rmImageCommand = s"${dockerCommand} rmi --force ${imageId}"
+      sb.append(s"$rmImageCommand\n")
+      runProcess(job, buildDir, workspaceDir, rmImageCommand)
+
+      exitCode
     }else{
       buildResult
     }
