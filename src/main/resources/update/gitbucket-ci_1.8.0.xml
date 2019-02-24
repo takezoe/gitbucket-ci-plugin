@@ -7,8 +7,8 @@
         <column name="DOCKER_COMPOSE_COMMAND" type="varchar(200)" nullable="true"/>
     </addColumn>
     <update tableName="CI_SYSTEM_CONFIG">
-        <column name="ENABLE_DOCKER" value="false"/>
-        <column name="ENABLE_DOCKER_COMPOSE" value="false"/>
+        <column name="ENABLE_DOCKER" valueBoolean="false"/>
+        <column name="ENABLE_DOCKER_COMPOSE" valueBoolean="false"/>
     </update>
     <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="ENABLE_DOCKER" columnDataType="boolean"/>
     <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="ENABLE_DOCKER_COMPOSE" columnDataType="boolean"/>
