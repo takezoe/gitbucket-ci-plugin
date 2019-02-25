@@ -126,10 +126,10 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
                 throw new RuntimeException("Docker job is disabled.")
               }
             case "docker-compose" =>
-              if(systemCIConfig.enableDocker){
+              if(systemCIConfig.enableDockerCompose){
                 runDockerComposeJob(job, buildDir, dir, dockerComposeCommand)
               }else{
-                throw new RuntimeException("Docker job is disabled.")
+                throw new RuntimeException("Docker compose job is disabled.")
               }
             case _ =>
               throw new MatchError("Invalid build type: " + job.config.buildType)

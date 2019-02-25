@@ -44,6 +44,8 @@
                       </label>
                       <input id="dockerfile" name="dockerfile" class="form-control" value="@config.filter(_.buildType == "docker").map(_.buildScript)">
                       <span id="error-dockerfile" class="error"></span>
+                  }
+                  @if(systemConfig.enableDockerCompose){
                       <label>
                           <input type="radio" name="buildType" value="docker-compose" @if(config.exists(_.buildType == "docker-compose")){checked}>
                           Build in docker compose
