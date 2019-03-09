@@ -268,7 +268,6 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand)
 
       val imageId = Process(s"""${dockerCommand} images --format "{{.ID}}" ${tagName}""").!!.stripLineEnd
-      println(imageId)
       val rmImageCommand = s"${dockerCommand} rmi --force ${imageId}"
       sb.append(s"$rmImageCommand\n")
       runProcess(job, buildDir, workspaceDir, rmImageCommand)
