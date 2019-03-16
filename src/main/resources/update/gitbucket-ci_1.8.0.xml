@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_SYSTEM_CONFIG">
+        <column name="ENABLE_DOCKER" type="boolean" nullable="true"/>
+        <column name="DOCKER_COMMAND" type="varchar(200)" nullable="true"/>
+        <column name="ENABLE_DOCKER_COMPOSE" type="boolean" nullable="true"/>
+        <column name="DOCKER_COMPOSE_COMMAND" type="varchar(200)" nullable="true"/>
+    </addColumn>
+    <update tableName="CI_SYSTEM_CONFIG">
+        <column name="ENABLE_DOCKER" valueBoolean="false"/>
+        <column name="ENABLE_DOCKER_COMPOSE" valueBoolean="false"/>
+    </update>
+    <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="ENABLE_DOCKER" columnDataType="boolean"/>
+    <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="ENABLE_DOCKER_COMPOSE" columnDataType="boolean"/>
+</changeSet>

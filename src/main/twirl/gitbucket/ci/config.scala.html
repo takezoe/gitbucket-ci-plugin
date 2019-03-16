@@ -1,5 +1,6 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
   config: Option[io.github.gitbucket.ci.model.CIConfig],
+  systemConfig: io.github.gitbucket.ci.model.CISystemConfig,
   info: Option[Any])(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
@@ -17,7 +18,7 @@
               </label>
             </fieldset>
             <div id="buildSettings">
-              <fielset class="form-group">
+              <fieldset class="form-group">
                 <div>
                   <span id="error-buildType" class="error"></span>
                 </div>
@@ -35,7 +36,25 @@
                   </label>
                   <input id="buildFile" name="buildFile" class="form-control" value="@config.filter(_.buildType == "file").map(_.buildScript)">
                   <span id="error-buildFile" class="error"></span>
-              </fielset>
+                  @if(systemConfig.enableDocker) {
+                      <label>
+                          <input type="radio" name="buildType" value="docker" @if(config.exists(_.buildType == "docker")){checked}>
+                          Build in docker
+                          <span class="normal muted">(Specify a Dockerfile in your repository to build this project)</span>
+                      </label>
+                      <input id="dockerfile" name="dockerfile" class="form-control" value="@config.filter(_.buildType == "docker").map(_.buildScript)">
+                      <span id="error-dockerfile" class="error"></span>
+                  }
+                  @if(systemConfig.enableDockerCompose){
+                      <label>
+                          <input type="radio" name="buildType" value="docker-compose" @if(config.exists(_.buildType == "docker-compose")){checked}>
+                          Build in docker compose
+                          <span class="normal muted">(Specify a docker-compose.yml in your repository to build this project)</span>
+                      </label>
+                      <input id="composeFile" name="composeFile" class="form-control" value="@config.filter(_.buildType == "docker-compose").map(_.buildScript)">
+                      <span id="error-composeFile" class="error"></span>
+                  }
+              </fieldset>
               <fieldset class="form-group">
                 <label class="checkbox" for="notification">
                   <input type="checkbox" id="notification" name="notification"@if(config.exists(_.notification)){ checked}/>
@@ -84,6 +103,10 @@ function updateStatus(){
       $('textarea[name=buildScript]').prop('disabled', false);
     } else if(buildType == 'file'){
       $('input[name=buildFile]').prop('disabled', false);
+    } else if(buildType == 'docker'){
+      $('input[name=dockerfile').prop('disabled', false);
+    } else if(buildType == 'docker-compose'){
+      $('input[name=composeFile]').prop('disabled', false);
     }
   } else {
     // Disables all fields

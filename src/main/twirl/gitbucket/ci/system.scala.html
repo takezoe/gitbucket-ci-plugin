@@ -18,6 +18,32 @@
             <span id="error-maxParallelBuilds" class="error"></span>
           </div>
         </div>
+        <div class="form-group">
+          <label class="checkbox" for="enableDocker">
+            <input type="checkbox" id="enableDocker" name="enableDocker"@if(systemConfig.enableDocker){ checked}/>
+            Enable docker
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="control-label col-md-2" for="dockerCommand">Docker command</label>
+          <div class="col-md-10">
+            <input type="input" name="dockerCommand" id="dockerCommand" class="form-control" value="@systemConfig.dockerCommand.getOrElse("")" placeholder="docker">
+            <span id="error-dockerCommand" class="error"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox" for="enableDockerCompose">
+            <input type="checkbox" id="enableDockerCompose" name="enableDockerCompose"@if(systemConfig.enableDockerCompose){ checked}/>
+            Enable docker compose
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="control-label col-md-2" for="dockerComposeCommand">docker-compose command</label>
+          <div class="col-md-10">
+            <input type="input" name="dockerComposeCommand" id="dockerComposeCommand" class="form-control" value="@systemConfig.dockerComposeCommand.getOrElse("")" placeholder="docker-compose">
+            <span id="error-dockerComposeCommand" class="error"></span>
+          </div>
+        </div>
         <div class="align-right" style="margin-top: 20px;">
           <input type="submit" class="btn btn-success" value="Apply changes"/>
         </div>

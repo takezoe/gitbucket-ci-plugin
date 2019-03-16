@@ -46,6 +46,8 @@ object CIController {
     buildType: Option[String],
     buildScript: Option[String],
     buildFile: Option[String],
+    dockerfile: Option[String],
+    composeFile: Option[String],
     notification: Boolean,
     skipWords: Option[String],
     runWords: Option[String]
@@ -53,7 +55,11 @@ object CIController {
 
   case class CISystemConfigForm(
     maxBuildHistory: Int,
-    maxParallelBuilds: Int
+    maxParallelBuilds: Int,
+    enableDocker: Boolean,
+    dockerCommand: Option[String],
+    enableDockerCompose: Boolean,
+    dockerComposeCommand: Option[String]
   )
 
 }
@@ -68,6 +74,8 @@ class CIController extends ControllerBase
     "buildType" -> trim(label("Build type", optionalRequiredIfChecked("enableBuild", text()))),
     "buildScript" -> trim(label("Build script", optionalRequired(_("buildType") == Seq("script"), text()))),
     "buildFile" -> trim(label("Build file", optionalRequired(_("buildType") == Seq("file"), text()))),
+    "dockerfile" -> trim(label("Dockerfile", optional(text()))),
+    "composeFile" -> trim(label("docker-compose.yml", optional(text()))),
     "notification" -> trim(label("Notification", boolean())),
     "skipWords" -> trim(label("Skip words", optional(text()))),
     "runWords" -> trim(label("Run words", optional(text())))
@@ -75,7 +83,11 @@ class CIController extends ControllerBase
 
   val ciSystemConfigForm = mapping(
     "maxBuildHistory" -> trim(label("Max build history", number())),
-    "maxParallelBuilds" -> trim(label("Max parallel builds", number()))
+    "maxParallelBuilds" -> trim(label("Max parallel builds", number())),
+    "enableDocker" -> trim(label("Enable docker", boolean())),
+    "dockerCommand" -> trim(label("docker command", optional(text()))),
+    "enableDockerCompose" -> trim(label("Enable docker-compse", boolean())),
+    "dockerComposeCommand" -> trim(label("docker-compose command", optional(text())))
   )(CISystemConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
@@ -306,7 +318,7 @@ class CIController extends ControllerBase
   })
 
   get("/:owner/:repository/settings/build")(ownerOnly { repository =>
-    gitbucket.ci.html.config(repository, loadCIConfig(repository.owner, repository.name), flash.get("info"))
+    gitbucket.ci.html.config(repository, loadCIConfig(repository.owner, repository.name), loadCISystemConfig(), flash.get("info"))
   })
 
   post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
@@ -320,6 +332,8 @@ class CIController extends ControllerBase
           (buildType match {
             case "script" => form.buildScript.getOrElse("")
             case "file" => form.buildFile.getOrElse("")
+            case "docker" => form.dockerfile.getOrElse("")
+            case "docker-compose" => form.composeFile.getOrElse("")
             case _ => ""
           }),
           form.notification,
@@ -350,7 +364,14 @@ class CIController extends ControllerBase
   })
 
   post("/admin/build", ciSystemConfigForm)(adminOnly { form =>
-    saveCISystemConfig(CISystemConfig(maxBuildHistory = form.maxBuildHistory, maxParallelBuilds = form.maxParallelBuilds))
+    saveCISystemConfig(CISystemConfig(
+      maxBuildHistory = form.maxBuildHistory,
+      maxParallelBuilds = form.maxParallelBuilds,
+      enableDocker = form.enableDocker,
+      dockerCommand = form.dockerCommand,
+      enableDockerCompose = form.enableDockerCompose,
+      dockerComposeCommand = form.dockerComposeCommand
+    ))
     BuildManager.setMaxParallelBuilds(form.maxParallelBuilds)
     redirect("/admin/build")
   })
