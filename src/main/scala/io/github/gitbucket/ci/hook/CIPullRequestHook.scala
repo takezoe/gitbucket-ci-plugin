@@ -15,7 +15,7 @@ import profile.api._
 
 class CIPullRequestHook extends PullRequestHook
   with PullRequestService with IssuesService with CommitsService with AccountService with WebHookService
-  with WebHookPullRequestService with WebHookPullRequestReviewCommentService with ActivityService
+  with WebHookPullRequestService with WebHookPullRequestReviewCommentService with ActivityService with MergeService
   with RepositoryService with LabelsService with PrioritiesService with MilestonesService with CIService {
 
   override def created(issue: Issue, repository: RepositoryInfo)(implicit session: Session, context: Context): Unit = {

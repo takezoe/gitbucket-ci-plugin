@@ -73,6 +73,12 @@ Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-as
 
 ## Release Notes
 
+### 1.8.0
+- Docker support
+
+### 1.7.0
+- Update for GitBucket 4.30.x
+
 ### 1.6.0
 - Some CircleCI compatible Web API
 
