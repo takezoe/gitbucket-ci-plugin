@@ -37,22 +37,22 @@
                   <input id="buildFile" name="buildFile" class="form-control" value="@config.filter(_.buildType == "file").map(_.buildScript)">
                   <span id="error-buildFile" class="error"></span>
                   @if(systemConfig.enableDocker) {
-                      <label>
-                          <input type="radio" name="buildType" value="docker" @if(config.exists(_.buildType == "docker")){checked}>
-                          Build in docker
-                          <span class="normal muted">(Specify a Dockerfile in your repository to build this project)</span>
-                      </label>
-                      <input id="dockerfile" name="dockerfile" class="form-control" value="@config.filter(_.buildType == "docker").map(_.buildScript)">
-                      <span id="error-dockerfile" class="error"></span>
+                    <label>
+                      <input type="radio" name="buildType" value="docker" @if(config.exists(_.buildType == "docker")){checked}>
+                      Build in docker
+                      <span class="normal muted">(Specify a Dockerfile in your repository to build this project)</span>
+                    </label>
+                    <input id="dockerfile" name="dockerfile" class="form-control" value="@config.filter(_.buildType == "docker").map(_.buildScript)">
+                    <span id="error-dockerfile" class="error"></span>
                   }
                   @if(systemConfig.enableDockerCompose){
-                      <label>
-                          <input type="radio" name="buildType" value="docker-compose" @if(config.exists(_.buildType == "docker-compose")){checked}>
-                          Build in docker compose
-                          <span class="normal muted">(Specify a docker-compose.yml in your repository to build this project)</span>
-                      </label>
-                      <input id="composeFile" name="composeFile" class="form-control" value="@config.filter(_.buildType == "docker-compose").map(_.buildScript)">
-                      <span id="error-composeFile" class="error"></span>
+                    <label>
+                      <input type="radio" name="buildType" value="docker-compose" @if(config.exists(_.buildType == "docker-compose")){checked}>
+                      Build in docker compose
+                      <span class="normal muted">(Specify a docker-compose.yml in your repository to build this project)</span>
+                    </label>
+                    <input id="composeFile" name="composeFile" class="form-control" value="@config.filter(_.buildType == "docker-compose").map(_.buildScript)">
+                    <span id="error-composeFile" class="error"></span>
                   }
               </fieldset>
               <fieldset class="form-group">
@@ -91,12 +91,11 @@ $(function(){
 });
 
 function updateStatus(){
-  console.log($('#enableBuild').prop('checked'));
   if($('#enableBuild').prop('checked')){
     // Enables radio buttons
     $('#buildSettings input[type=radio]').prop('disabled', false);
     // Once disables both fields
-    $('textarea[name=buildScript], input[name=buildFile]').prop('disabled', true);
+    $('textarea[name=buildScript], input[name=buildFile], input[name=dockerfile], input[name=composeFile]').prop('disabled', true);
     // Enables a field if corresponding radio button has been checked
     var buildType = $('input[name=buildType]:checked').val();
     if(buildType == 'script'){
