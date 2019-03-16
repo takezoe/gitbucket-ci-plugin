@@ -56,6 +56,7 @@ In addition, this plug-in is made to just experiment continuous integration on G
 
 Plugin version | GitBucket version
 :--------------|:--------------------
+1.8.x          | 4.31.x -
 1.7.x          | 4.30.x -
 1.6.x -        | 4.24.0 -
 1.5.x -        | 4.23.1 -
@@ -72,6 +73,9 @@ Download jar file from [plugin registry](https://plugins.gitbucket-community.org
 Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar), or just run `sbt install`.
 
 ## Release Notes
+
+### 1.8.1
+- Bug fix
 
 ### 1.8.0
 - Docker support
@@ -93,24 +97,24 @@ Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-as
 
 ### 1.3.0
 
-- update for Scalatra 2.6
-- fix skipping pull request build bug
+- Update for Scalatra 2.6
+- Fix skipping pull request build bug
 
 ### 1.2.0
 
-- build workspace browser
-- altered build directories location
+- Build workspace browser
+- Altered build directories location
 
 ### 1.1.0
 
-- skip build by commit message
-- re-run build by pull request comment
-- supply environment variables in build script
+- Skip build by commit message
+- Re-run build by pull request comment
+- Supply environment variables in build script
 
 ### 1.0.1
 
-- build status badge
-- fix pull request build bug
+- Build status badge
+- Fix pull request build bug
 
 ### 1.0.0
 
