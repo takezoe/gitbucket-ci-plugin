@@ -56,6 +56,7 @@ In addition, this plug-in is made to just experiment continuous integration on G
 
 Plugin version | GitBucket version
 :--------------|:--------------------
+1.9.x          | 4.32.x -
 1.8.x          | 4.31.x -
 1.7.x          | 4.30.x -
 1.6.x -        | 4.24.0 -
@@ -66,13 +67,16 @@ Plugin version | GitBucket version
 
 ## Installation
 
-Download jar file from [plugin registry](https://plugins.gitbucket-community.org/releases/gitbucket-ci-plugin) and put into `GITBUCKET_HOME/plugins`.
+Download jar file from [the release page](https://github.com/takezoe/gitbucket-ci-plugin/releases) and put into `GITBUCKET_HOME/plugins`.
 
 ## Build
 
-Run `sbt assembly` and copy generated `/target/scala-2.12/gitbucket-ci-plugin-assembply-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar), or just run `sbt install`.
+Run `sbt assembly` and copy generated `/target/scala-2.13/gitbucket-ci-plugin-x.x.x.jar` to `~/.gitbucket/plugins/` (If the directory does not exist, create it by hand before copying the jar), or just run `sbt install`.
 
 ## Release Notes
+
+### 1.9.0
+- Update for GitBUcket 4.32.0 and Scala 2.13.0
 
 ### 1.8.1
 - Bug fix
