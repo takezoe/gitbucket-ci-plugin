@@ -8,7 +8,7 @@ import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.service.{AccountService, RepositoryService}
 import io.github.gitbucket.ci.util.CIUtils
 import org.apache.commons.io.FileUtils
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class BuildJob(
   userName: String,
@@ -145,7 +145,6 @@ trait CIService { self: AccountService with RepositoryService =>
   }
 
   def getQueuedJobs(userName: String, repositoryName: String): Seq[BuildJob] = {
-    import scala.collection.JavaConverters._
     BuildManager.queue.iterator.asScala.filter { job =>
       job.userName == userName && job.repositoryName == repositoryName
     }.toSeq

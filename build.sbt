@@ -3,6 +3,7 @@ organization := "io.github.gitbucket"
 version := "1.9.0"
 scalaVersion := "2.13.0"
 gitbucketVersion := "4.32.0"
+scalacOptions += "-deprecation"
 libraryDependencies ++= Seq(
   "org.fusesource.jansi" %  "jansi"                % "1.18",
   "org.scalatest"        %% "scalatest"            % "3.0.8" % "test",

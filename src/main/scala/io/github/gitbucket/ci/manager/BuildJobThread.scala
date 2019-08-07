@@ -11,7 +11,6 @@ import gitbucket.core.service.{AccountService, CommitStatusService, RepositorySe
 import gitbucket.core.servlet.Database
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.Mailer
-import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIResult
 import io.github.gitbucket.ci.service._
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
@@ -23,6 +22,7 @@ import org.slf4j.LoggerFactory
 
 import scala.sys.process.{Process, ProcessLogger}
 import scala.util.control.ControlThrowable
+import scala.util.Using
 
 
 class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlockingQueue[BuildJobThread]) extends Thread
@@ -97,7 +97,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
         sb.append(s"git clone ${job.buildUserName}/${job.buildRepositoryName}\n")
 
         // git clone
-        using(Git.cloneRepository()
+        Using.resource(Git.cloneRepository()
           .setURI(getRepositoryDir(job.buildUserName, job.buildRepositoryName).toURI.toString)
           .setDirectory(dir).call()) { git =>
 

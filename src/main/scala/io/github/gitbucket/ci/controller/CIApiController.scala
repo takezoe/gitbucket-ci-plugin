@@ -4,12 +4,12 @@ import gitbucket.core.util.Implicits._
 import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
-import gitbucket.core.util.SyntaxSugars._
 import gitbucket.core.util._
 import io.github.gitbucket.ci.api.{CIApiBuild, CIApiPreviousBuild, CIApiSingleBuild, JsonFormat}
 import io.github.gitbucket.ci.service.CIService
 import org.eclipse.jgit.api.Git
 import org.scalatra.{BadRequest, Ok}
+import scala.util.Using
 
 class CIApiController extends ControllerBase
   with UsersAuthenticator
@@ -84,7 +84,7 @@ class CIApiController extends ControllerBase
 
   post("/api/circleci/v1.1/project/gitbucket/:owner/:repository")(writableUsersOnly { repository =>
     loadCIConfig(repository.owner, repository.name).map { config =>
-      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+      Using.resource(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
           val revCommit = JGitUtil.getRevCommitFromId(git, objectId)
           runBuild(
@@ -110,7 +110,7 @@ class CIApiController extends ControllerBase
   post("/api/circleci/v1.1/project/gitbucket/:owner/:repository/tree/:branch")(writableUsersOnly { repository =>
     val branch = params("branch")
     loadCIConfig(repository.owner, repository.name).map { config =>
-      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+      Using.resource(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         val objectId = git.getRepository.resolve(branch)
         val revCommit = JGitUtil.getRevCommitFromId(git, objectId)
         runBuild(

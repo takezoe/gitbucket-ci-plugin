@@ -8,7 +8,7 @@ import io.github.gitbucket.solidbase.model.Module
 import liquibase.database.core.{H2Database, MySQLDatabase, PostgresDatabase}
 import org.junit.runner.Description
 import org.scalatest.{FunSuite, Tag}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ExternalDBTest extends Tag("ExternalDBTest")
 
@@ -36,7 +36,7 @@ class MigrationSpec extends FunSuite {
         // TODO https://github.com/testcontainers/testcontainers-java/issues/736
         container.withCommand("mysqld --default-authentication-plugin=mysql_native_password")
       }
-      container.starting()
+      container.start()
       try {
         new Solidbase().migrate(
           DriverManager.getConnection(s"${container.jdbcUrl}?useSSL=false", container.username, container.password),
@@ -45,7 +45,7 @@ class MigrationSpec extends FunSuite {
           new Module(plugin.pluginId, plugin.versions.asJava)
         )
       } finally {
-        container.finished()
+        container.stop()
       }
     }
   }
@@ -54,7 +54,7 @@ class MigrationSpec extends FunSuite {
     test(s"Migration PostgreSQL $tag", ExternalDBTest) {
       val container = PostgreSQLContainer(s"postgres:$tag")
 
-      container.starting()
+      container.start()
       try {
         new Solidbase().migrate(
           DriverManager.getConnection(container.jdbcUrl, container.username, container.password),
@@ -63,7 +63,7 @@ class MigrationSpec extends FunSuite {
           new Module(plugin.pluginId, plugin.versions.asJava)
         )
       } finally {
-        container.finished()
+        container.stop()
       }
     }
   }
