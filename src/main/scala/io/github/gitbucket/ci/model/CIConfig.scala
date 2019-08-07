@@ -1,5 +1,7 @@
 package io.github.gitbucket.ci.model
 
+import scala.language.postfixOps
+
 trait CIConfigComponent { self: gitbucket.core.model.Profile =>
   import profile.api._
   import self._

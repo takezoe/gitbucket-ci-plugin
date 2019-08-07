@@ -6,7 +6,6 @@ import gitbucket.core.controller.ControllerBase
 import gitbucket.core.service.RepositoryService.RepositoryInfo
 import gitbucket.core.service.{AccountService, RepositoryService}
 import gitbucket.core.util.Directory.getRepositoryDir
-import gitbucket.core.util.SyntaxSugars.using
 import gitbucket.core.util._
 import gitbucket.core.util.Implicits._
 import gitbucket.core.view.helpers.datetimeAgo
@@ -19,6 +18,8 @@ import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
 import org.json4s.jackson.Serialization
 import org.scalatra.{BadRequest, Ok}
+
+import scala.util.Using
 
 object CIController {
 
@@ -135,7 +136,7 @@ class CIController extends ControllerBase
             committer   = result.commitUserName,
             author      = result.buildAuthor,
             startTime   = datetimeAgo(result.startTime),
-            duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + " sec"
+            duration    = s"${((result.endTime.getTime - result.startTime.getTime) / 1000)} sec"
           )
         }
     }.map { status =>
@@ -164,7 +165,7 @@ class CIController extends ControllerBase
 
   ajaxPost("/:owner/:repository/build/run")(writableUsersOnly { repository =>
     loadCIConfig(repository.owner, repository.name).map { config =>
-      using(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
+      Using.resource(Git.open(getRepositoryDir(repository.owner, repository.name))) { git =>
         JGitUtil.getDefaultBranch(git, repository).map { case (objectId, revision) =>
           val revCommit = JGitUtil.getRevCommitFromId(git, objectId)
           runBuild(
@@ -237,7 +238,7 @@ class CIController extends ControllerBase
     if(file.isFile){
       contentType = FileUtil.getMimeType(path)
       response.setContentLength(file.length.toInt)
-      using(new FileInputStream(file)){ in =>
+      Using.resource(new FileInputStream(file)){ in =>
         IOUtils.copy(in, response.getOutputStream)
       }
     } else {
@@ -309,7 +310,7 @@ class CIController extends ControllerBase
         committer   = result.commitUserName,
         author      = result.buildUserName,
         startTime   = datetimeAgo(result.startTime),
-        duration    = ((result.endTime.getTime - result.startTime.getTime) / 1000) + " sec"
+        duration    = s"${((result.endTime.getTime - result.startTime.getTime) / 1000)} sec"
       )
     }
 
@@ -344,7 +345,7 @@ class CIController extends ControllerBase
     } else {
       saveCIConfig(repository.owner, repository.name, None)
     }
-    flash += "info" -> "Build configuration has been updated."
+    flash.update("info", "Build configuration has been updated.")
     redirect(s"/${repository.owner}/${repository.name}/settings/build")
   })
 

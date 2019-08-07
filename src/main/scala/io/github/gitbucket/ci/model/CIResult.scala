@@ -1,6 +1,7 @@
 package io.github.gitbucket.ci.model
 
 import io.github.gitbucket.ci.util.JobStatus
+import scala.language.postfixOps
 
 trait CIResultComponent { self: gitbucket.core.model.Profile =>
   import profile.api._

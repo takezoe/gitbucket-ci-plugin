@@ -3,8 +3,9 @@ package io.github.gitbucket.ci.util
 import java.io.{ByteArrayOutputStream, File}
 
 import gitbucket.core.util.Directory
-import gitbucket.core.util.SyntaxSugars.using
 import org.fusesource.jansi.HtmlAnsiOutputStream
+
+import scala.util.Using
 
 object CIUtils {
 
@@ -16,8 +17,8 @@ object CIUtils {
   }
 
   def colorize(text: String) = {
-    using(new ByteArrayOutputStream()){ os =>
-      using(new HtmlAnsiOutputStream(os)){ hos =>
+    Using.resource(new ByteArrayOutputStream()){ os =>
+      Using.resource(new HtmlAnsiOutputStream(os)){ hos =>
         hos.write(text.getBytes("UTF-8"))
       }
       new String(os.toByteArray, "UTF-8")

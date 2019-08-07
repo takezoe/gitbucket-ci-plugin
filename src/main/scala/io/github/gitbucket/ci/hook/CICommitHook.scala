@@ -5,12 +5,12 @@ import gitbucket.core.model.Profile._
 import gitbucket.core.service._
 import gitbucket.core.util.Directory.getRepositoryDir
 import gitbucket.core.util.JGitUtil
-import gitbucket.core.util.SyntaxSugars.using
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.CIService
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.{ReceiveCommand, ReceivePack}
 import profile.blockingApi._
+import scala.util.Using
 
 class CICommitHook extends ReceiveHook
   with CIService with RepositoryService with AccountService with CommitStatusService with SystemSettingsService {
@@ -20,7 +20,7 @@ class CICommitHook extends ReceiveHook
     val branch = command.getRefName.stripPrefix("refs/heads/")
     if(branch != command.getRefName && command.getType != ReceiveCommand.Type.DELETE){
       getRepository(owner, repository).foreach { repositoryInfo =>
-        using(Git.open(getRepositoryDir(owner, repository))) { git =>
+        Using.resource(Git.open(getRepositoryDir(owner, repository))) { git =>
           val sha = command.getNewId.name
           val revCommit = JGitUtil.getRevCommitFromId(git, command.getNewId)
 
