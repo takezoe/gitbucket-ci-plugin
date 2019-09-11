@@ -18,7 +18,7 @@ class CIPullRequestHook extends PullRequestHook
   with WebHookPullRequestService with WebHookPullRequestReviewCommentService with ActivityService with MergeService
   with RepositoryService with LabelsService with PrioritiesService with MilestonesService with CIService {
 
-  override def created(issue: Issue, repository: RepositoryInfo)(implicit session: Session, context: Context): Unit = {
+  private def runBuildWith(issue: Issue, repository: RepositoryInfo, isMergeRequest: Boolean)(implicit session: Session, context: Context): Unit = {
     if(issue.isPullRequest){
       for {
         (_, pullreq) <- getPullRequest(issue.userName, issue.repositoryName, issue.issueId)
@@ -34,8 +34,17 @@ class CIPullRequestHook extends PullRequestHook
           repositoryName      = pullreq.repositoryName,
           buildUserName       = pullreq.requestUserName,
           buildRepositoryName = pullreq.requestRepositoryName,
-          buildBranch         = pullreq.requestBranch,
-          sha                 = pullreq.commitIdTo,
+          buildBranch         = isMergeRequest match {
+              case true => pullreq.branch
+              case false => pullreq.requestBranch
+          },
+          sha                 = isMergeRequest match {
+              case true => Using.resource(Git.open(getRepositoryDir(pullreq.userName, pullreq.repositoryName))) { git =>
+                val objectId = git.getRepository.resolve(pullreq.branch)
+                objectId.name
+              }
+              case false => pullreq.commitIdTo
+          },
           commitMessage       = revCommit.getShortMessage,
           commitUserName      = revCommit.getCommitterIdent.getName,
           commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
@@ -46,6 +55,13 @@ class CIPullRequestHook extends PullRequestHook
       }
     }
   }
+
+  override def created(issue: Issue, repository: RepositoryInfo)(implicit session: Session, context: Context): Unit = 
+    runBuildWith(issue, repository, false)
+
+  override def merged(issue: Issue, repository: RepositoryInfo)(implicit session: Session, context: Context): Unit = 
+    runBuildWith(issue, repository, true)
+
 
   override def addedComment(commentId: Int, content: String, issue: Issue, repository: RepositoryInfo)
                            (implicit session: Session, context: Context): Unit = {
@@ -78,6 +94,5 @@ class CIPullRequestHook extends PullRequestHook
       }
     }
   }
-
 
 }
