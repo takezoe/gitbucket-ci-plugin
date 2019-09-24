@@ -14,9 +14,10 @@ trait CIConfigComponent { self: gitbucket.core.model.Profile =>
     val buildType = column[String]("BUILD_TYPE")
     val buildScript = column[String]("BUILD_SCRIPT")
     val notification = column[Boolean]("NOTIFICATION")
+    val runAfterMerge = column[Boolean]("RUN_AFTER_MERGE")
     val skipWords = column[String]("SKIP_WORDS")
     val runWords = column[String]("RUN_WORDS")
-    def * = (userName, repositoryName, buildType, buildScript, notification, skipWords.?, runWords.?) <> (CIConfig.tupled, CIConfig.unapply)
+    def * = (userName, repositoryName, buildType, buildScript, notification, runAfterMerge, skipWords.?, runWords.?) <> (CIConfig.tupled, CIConfig.unapply)
   }
 }
 
@@ -26,6 +27,7 @@ case class CIConfig(
   buildType: String,
   buildScript: String,
   notification: Boolean,
+  runAfterMerge: Boolean,
   skipWords: Option[String],
   runWords: Option[String]
 ){

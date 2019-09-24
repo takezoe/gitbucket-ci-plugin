@@ -65,6 +65,12 @@
                 </label>
               </fieldset>
               <fieldset class="form-group">
+                <label class="checkbox" for="runAfterMerge">
+                  <input type="checkbox" id="runAfterMerge" name="runAfterMerge"@if(config.exists(_.runAfterMerge)){ checked}/>
+                  Run a build script after the merge
+                </label>
+              </fieldset>
+              <fieldset class="form-group">
                 <label for="skipWords">Skip words</label> (comma-separated words)
                 <input type="text" name="skipWords" class="form-control" id="skipWords" value="@config.map(_.skipWords).getOrElse("[ci skip], [skip ci]")">
               </fieldset>

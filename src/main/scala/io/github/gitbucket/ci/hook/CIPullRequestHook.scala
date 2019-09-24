@@ -25,33 +25,37 @@ class CIPullRequestHook extends PullRequestHook
         buildAuthor  <- context.loginAccount
         buildConfig  <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
       } yield {
-        val revCommit = Using.resource(Git.open(getRepositoryDir(pullreq.requestUserName, pullreq.requestRepositoryName))) { git =>
+        val revCommit = Using.resource(
+          Git.open(getRepositoryDir(pullreq.requestUserName, pullreq.requestRepositoryName))
+        ) { git =>
           val objectId = git.getRepository.resolve(pullreq.commitIdTo)
           JGitUtil.getRevCommitFromId(git, objectId)
         }
-        runBuild(
-          userName            = pullreq.userName,
-          repositoryName      = pullreq.repositoryName,
-          buildUserName       = pullreq.requestUserName,
-          buildRepositoryName = pullreq.requestRepositoryName,
-          buildBranch         = isMergeRequest match {
+
+        if (!isMergeRequest || buildConfig.runAfterMerge) {
+          runBuild(
+            userName            = pullreq.userName,
+            repositoryName      = pullreq.repositoryName,
+            buildUserName       = pullreq.requestUserName,
+            buildRepositoryName = pullreq.requestRepositoryName,
+            buildBranch         = isMergeRequest match {
               case true => pullreq.branch
               case false => pullreq.requestBranch
-          },
-          sha                 = isMergeRequest match {
+            },
+            sha                 = isMergeRequest match {
               case true => Using.resource(Git.open(getRepositoryDir(pullreq.userName, pullreq.repositoryName))) { git =>
-                val objectId = git.getRepository.resolve(pullreq.branch)
-                objectId.name
+                git.getRepository.resolve(pullreq.branch).name
               }
               case false => pullreq.commitIdTo
-          },
-          commitMessage       = revCommit.getShortMessage,
-          commitUserName      = revCommit.getCommitterIdent.getName,
-          commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
-          pullRequestId       = Some(pullreq.issueId),
-          buildAuthor         = buildAuthor,
-          config              = buildConfig
-        )
+            },
+            commitMessage       = revCommit.getShortMessage,
+            commitUserName      = revCommit.getCommitterIdent.getName,
+            commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+            pullRequestId       = Some(pullreq.issueId),
+            buildAuthor         = buildAuthor,
+            config              = buildConfig
+          )
+        }
       }
     }
   }

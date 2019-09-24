@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_CONFIG">
+        <column name="RUN_AFTER_MERGE" type="boolean" nullable="true"/>
+    </addColumn>
+    <update tableName="CI_CONFIG">
+        <column name="RUN_AFTER_MERGE" valueBoolean="false"/>
+    </update>
+    <addNotNullConstraint tableName="CI_CONFIG" columnName="RUN_AFTER_MERGE" columnDataType="boolean"/>
+</changeSet>
