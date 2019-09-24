@@ -50,6 +50,7 @@ object CIController {
     dockerfile: Option[String],
     composeFile: Option[String],
     notification: Boolean,
+    runAfterMerge: Boolean,
     skipWords: Option[String],
     runWords: Option[String]
   )
@@ -78,6 +79,7 @@ class CIController extends ControllerBase
     "dockerfile" -> trim(label("Dockerfile", optional(text()))),
     "composeFile" -> trim(label("docker-compose.yml", optional(text()))),
     "notification" -> trim(label("Notification", boolean())),
+    "runAfterMerge" -> trim(label("Run after merge", boolean())),
     "skipWords" -> trim(label("Skip words", optional(text()))),
     "runWords" -> trim(label("Run words", optional(text())))
   )(BuildConfigForm.apply)
@@ -338,6 +340,7 @@ class CIController extends ControllerBase
             case _ => ""
           }),
           form.notification,
+          form.runAfterMerge,
           form.skipWords,
           form.runWords
         )
