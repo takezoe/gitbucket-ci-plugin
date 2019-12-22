@@ -1,7 +1,7 @@
 name := "gitbucket-ci-plugin"
 organization := "io.github.gitbucket"
-version := "1.9.0"
-scalaVersion := "2.13.0"
+version := "1.9.1"
+scalaVersion := "2.13.1"
 gitbucketVersion := "4.32.0"
 scalacOptions += "-deprecation"
 libraryDependencies ++= Seq(
