@@ -23,3 +23,8 @@ project/plugins/project/
 # Ensime
 .ensime
 .ensime_cache/
+
+# Metals
+.bloop/
+.metals/
+project/metals.sbt
