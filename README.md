@@ -76,11 +76,14 @@ Run `sbt assembly` and copy generated `/target/scala-2.13/gitbucket-ci-plugin-x.
 
 ## Release Notes
 
+### 1.10.0
+- Update for GitBucket 4.34.0 compatibility
+
 ### 1.9.1
 - Run build after a pull request is merged
 
 ### 1.9.0
-- Update for GitBUcket 4.32.0 and Scala 2.13.0
+- Update for GitBucket 4.32.0 and Scala 2.13.0
 
 ### 1.8.1
 - Bug fix
