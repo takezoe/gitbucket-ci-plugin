@@ -16,7 +16,8 @@ import scala.util.Using
 class CIPullRequestHook extends PullRequestHook
   with PullRequestService with IssuesService with CommitsService with AccountService with WebHookService
   with WebHookPullRequestService with WebHookPullRequestReviewCommentService with ActivityService with MergeService
-  with RepositoryService with LabelsService with PrioritiesService with MilestonesService with CIService {
+  with RepositoryService with LabelsService with PrioritiesService with MilestonesService with CIService 
+  with RequestCache {
 
   private def runBuildWith(issue: Issue, repository: RepositoryInfo, isMergeRequest: Boolean)(implicit session: Session, context: Context): Unit = {
     if(issue.isPullRequest){
