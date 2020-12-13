@@ -1,4 +1,4 @@
-gitbucket-ci-plugin [![Build Status](https://travis-ci.org/takezoe/gitbucket-ci-plugin.svg?branch=master)](https://travis-ci.org/takezoe/gitbucket-ci-plugin)
+gitbucket-ci-plugin [![build](https://github.com/takezoe/gitbucket-ci-plugin/workflows/build/badge.svg?branch=master)](https://github.com/takezoe/gitbucket-ci-plugin/actions?query=workflow%3Abuild+branch%3Amaster)
 ========
 GitBucket plug-in that adds simple CI ability to GitBucket.
 
