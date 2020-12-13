@@ -16,7 +16,7 @@ class CICommitHook extends ReceiveHook
   with CIService with RepositoryService with AccountService with CommitStatusService with SystemSettingsService {
 
   override def postReceive(owner: String, repository: String, receivePack: ReceivePack,
-                           command: ReceiveCommand, pusher: String)(implicit session: Session): Unit = {
+                           command: ReceiveCommand, pusher: String, mergePullRequest: Boolean)(implicit session: Session): Unit = {
     val branch = command.getRefName.stripPrefix("refs/heads/")
     if(branch != command.getRefName && command.getType != ReceiveCommand.Type.DELETE){
       getRepository(owner, repository).foreach { repositoryInfo =>
