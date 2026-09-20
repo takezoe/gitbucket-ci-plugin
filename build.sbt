@@ -1,8 +1,8 @@
 name := "gitbucket-ci-plugin"
 organization := "io.github.gitbucket"
-version := "1.11.0"
-scalaVersion := "2.13.7"
-gitbucketVersion := "4.36.2"
+version := "1.12.0"
+scalaVersion := "2.13.18"
+gitbucketVersion := "4.48.0"
 scalacOptions += "-deprecation"
 libraryDependencies ++= Seq(
   "org.fusesource.jansi" %  "jansi"                % "1.18",

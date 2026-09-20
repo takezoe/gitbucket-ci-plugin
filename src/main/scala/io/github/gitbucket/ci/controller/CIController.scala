@@ -322,7 +322,7 @@ class CIController extends ControllerBase
     gitbucket.ci.html.config(repository, loadCIConfig(repository.owner, repository.name), loadCISystemConfig(), flash.get("info"))
   })
 
-  post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnly { (form, repository) =>
+  post("/:owner/:repository/settings/build", buildConfigForm)(ownerOnlyWithForm { (form, repository) =>
     if(form.enableBuild){
       val buildType = form.buildType.getOrElse("script")
       saveCIConfig(repository.owner, repository.name, Some(
@@ -364,7 +364,7 @@ class CIController extends ControllerBase
     gitbucket.ci.html.system(loadCISystemConfig())
   })
 
-  post("/admin/build", ciSystemConfigForm)(adminOnly { form =>
+  post("/admin/build", ciSystemConfigForm)(adminOnlyWithForm { form =>
     saveCISystemConfig(CISystemConfig(
       maxBuildHistory = form.maxBuildHistory,
       maxParallelBuilds = form.maxParallelBuilds,
