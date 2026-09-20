@@ -77,7 +77,7 @@ class CIApiController extends ControllerBase
   })
 
   post("/api/circleci/v1.1/project/gitbucket/:owner/:repository/:build_num/cancel")(writableUsersOnly { repository =>
-    val buildNumber = params("buildNumber").toInt
+    val buildNumber = params("build_num").toInt
     cancelBuild(repository.owner, repository.name, buildNumber)
     Ok()
   })

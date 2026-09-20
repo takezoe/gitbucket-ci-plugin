@@ -3,7 +3,7 @@ organization := "io.github.gitbucket"
 version := "1.12.0"
 scalaVersion := "2.13.18"
 gitbucketVersion := "4.48.0"
-scalacOptions ++= Seq("-deprecation", "-Xsource:3-cross")
+scalacOptions ++= Seq("-deprecation", "-Xsource:3-cross", "-Wconf:msg=will always yield:e")
 libraryDependencies ++= Seq(
   "org.fusesource.jansi" %  "jansi"                % "1.18",
   "org.scalatest"        %% "scalatest"            % "3.2.19" % "test",
