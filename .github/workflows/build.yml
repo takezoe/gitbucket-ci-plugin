@@ -5,9 +5,11 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
-        java: [17]
+        java: [17, 25]
     steps:
     - uses: actions/checkout@v7
     - uses: sbt/setup-sbt@v1
@@ -19,20 +21,15 @@ jobs:
         path: |
           ~/.ivy2/cache
           ~/.sbt
-          ~/.coursier
-        key: build-${{ env.cache-name }}-${{ hashFiles('build.sbt') }}    
+          ~/.cache/coursier/v1
+        key: build-${{ env.cache-name }}-${{ hashFiles('build.sbt') }}
     - name: Set up JDK
       uses: actions/setup-java@v6
       with:
         java-version: ${{ matrix.java }}
         distribution: temurin
     - name: Run tests
-      run: |
-        git clone --depth 1 https://github.com/gitbucket/gitbucket.git
-        cd gitbucket
-        sbt publishLocal
-        cd ../
-        sbt test
+      run: sbt test
     - name: Assembly
       run: sbt assembly
     - name: Upload artifacts

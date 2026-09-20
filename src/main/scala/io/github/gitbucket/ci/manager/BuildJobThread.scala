@@ -289,7 +289,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
 
     sb.append(s"${buildCommand}\n")
     val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand)
-    if(buildCommand != 0){
+    if(buildResult == 0){
       sb.append(s"${runCommand}\n")
       val exitCode = runProcess(job, buildDir, workspaceDir, runCommand)
       runProcess(job, buildDir, workspaceDir, downCommand)

@@ -7,13 +7,14 @@ import io.github.gitbucket.solidbase.Solidbase
 import io.github.gitbucket.solidbase.model.Module
 import liquibase.database.core.{H2Database, MySQLDatabase, PostgresDatabase}
 import org.junit.runner.Description
-import org.scalatest.{FunSuite, Tag}
+import org.scalatest.Tag
+import org.scalatest.funsuite.AnyFunSuite
 import scala.jdk.CollectionConverters._
 import org.testcontainers.utility.DockerImageName
 
 object ExternalDBTest extends Tag("ExternalDBTest")
 
-class MigrationSpec extends FunSuite {
+class MigrationSpec extends AnyFunSuite {
 
   val plugin = Class.forName("Plugin").newInstance().asInstanceOf[gitbucket.core.plugin.Plugin]
 
@@ -26,7 +27,7 @@ class MigrationSpec extends FunSuite {
     )
   }
 
-  implicit private val suiteDescription = Description.createSuiteDescription(getClass)
+  implicit private val suiteDescription: Description = Description.createSuiteDescription(getClass)
 
   Seq("8.0", "5.7").foreach { tag =>
     test(s"Migration MySQL $tag", ExternalDBTest) {
