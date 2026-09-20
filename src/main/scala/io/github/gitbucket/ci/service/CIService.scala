@@ -8,6 +8,7 @@ import gitbucket.core.model.Profile.profile.blockingApi._
 import gitbucket.core.service.{AccountService, RepositoryService}
 import io.github.gitbucket.ci.util.CIUtils
 import org.apache.commons.io.FileUtils
+import org.slf4j.LoggerFactory
 import scala.jdk.CollectionConverters._
 
 case class BuildJob(
@@ -48,6 +49,8 @@ object BuildNumberGenerator extends CIService with AccountService with Repositor
 }
 
 trait CIService { self: AccountService with RepositoryService =>
+
+  private val logger = LoggerFactory.getLogger(classOf[CIService])
 
   def saveCISystemConfig(config: CISystemConfig)(implicit s: Session): Unit = {
     CISystemConfigs.map { t =>
@@ -155,6 +158,12 @@ trait CIService { self: AccountService with RepositoryService =>
     val results = getCIResults(result.userName, result.repositoryName).sortBy(_.buildNumber)
     if (results.length >= systemConfig.maxBuildHistory){
       results.take(results.length - systemConfig.maxBuildHistory + 1).foreach { result =>
+        // Audit log the deletion before it happens
+        logger.info(
+          s"Deleting CI build history for ${result.userName}/${result.repositoryName}#${result.buildNumber} " +
+          s"(exceeded maxBuildHistory=${systemConfig.maxBuildHistory})"
+        )
+
         // Delete from database
         CIResults.filter { t =>
           (t.userName       === result.userName.bind) &&
