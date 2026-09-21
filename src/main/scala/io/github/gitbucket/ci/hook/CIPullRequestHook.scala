@@ -64,6 +64,8 @@ class CIPullRequestHook extends PullRequestHook
             commitUserName      = revCommit.getCommitterIdent.getName,
             commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
             pullRequestId       = Some(pullreq.issueId),
+            pullRequestTitle    = Some(issue.title),
+            pullRequestTargetBranch = Some(pullreq.branch),
             buildAuthor         = buildAuthor,
             config              = buildConfig
           )
@@ -104,6 +106,8 @@ class CIPullRequestHook extends PullRequestHook
             commitUserName      = revCommit.getCommitterIdent.getName,
             commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
             pullRequestId       = Some(pullreq.issueId),
+            pullRequestTitle    = Some(issue.title),
+            pullRequestTargetBranch = Some(pullreq.branch),
             buildAuthor         = buildAuthor,
             config              = buildConfig
           )
