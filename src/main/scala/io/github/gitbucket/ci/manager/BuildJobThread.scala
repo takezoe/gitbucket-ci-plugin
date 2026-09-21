@@ -121,18 +121,18 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
 
           job.config.buildType match {
             case "script" =>
-              runScriptJob(job, buildDir, dir, deadline)
+              runScriptJob(job, buildDir, dir, deadline, targetUrl)
             case "file" =>
-              runFileJob(job, buildDir, dir, deadline)
+              runFileJob(job, buildDir, dir, deadline, targetUrl)
             case "docker" =>
               if(systemCIConfig.enableDocker){
-                runDockerJob(job, buildDir, dir, dockerCommand, deadline)
+                runDockerJob(job, buildDir, dir, dockerCommand, deadline, targetUrl)
               }else{
                 throw new RuntimeException("Docker job is disabled.")
               }
             case "docker-compose" =>
               if(systemCIConfig.enableDockerCompose){
-                runDockerComposeJob(job, buildDir, dir, dockerComposeCommand, deadline)
+                runDockerComposeJob(job, buildDir, dir, dockerComposeCommand, deadline, targetUrl)
               }else{
                 throw new RuntimeException("Docker compose job is disabled.")
               }
@@ -222,8 +222,9 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
 
   /**
    * @param deadline epoch millis at which the process is killed; Long.MaxValue disables it.
+   * @param targetUrl link back to this build's own page, exposed to the process as CI_SERVER_URL.
    */
-  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, deadline: Long): Int = {
+  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, deadline: Long, targetUrl: Option[String]): Int = {
     val builder = new ProcessBuilder(command.trim.split("\\s+").toList.asJava).directory(workspaceDir).redirectErrorStream(true)
     builder.environment().putAll(Map(
       "CI" -> "true",
@@ -231,11 +232,20 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       "CI_BUILD_DIR" -> buildDir.getAbsolutePath,
       "CI_BUILD_NUMBER" -> job.buildNumber.toString,
       "CI_BUILD_BRANCH" -> job.buildBranch,
+      "CI_BUILD_TRIGGERED_BY" -> job.buildAuthor.userName,
       "CI_COMMIT_ID" -> job.sha,
+      "CI_COMMIT_SHORT_SHA" -> job.sha.take(7),
+      "CI_COMMIT_BEFORE_SHA" -> job.commitBeforeSha.getOrElse(""),
       "CI_COMMIT_MESSAGE" -> job.commitMessage,
+      // Sourced from the commit's committer identity (there's no separate "author" captured today).
+      "CI_COMMIT_AUTHOR" -> job.commitUserName,
+      "CI_COMMIT_AUTHOR_EMAIL" -> job.commitMailAddress,
       "CI_REPO_SLUG" -> s"${job.userName}/${job.repositoryName}",
       "CI_PULL_REQUEST" -> job.pullRequestId.map(_.toString).getOrElse("false"),
-      "CI_PULL_REQUEST_SLUG" -> (if (job.pullRequestId.isDefined) s"${job.buildUserName}/${job.buildRepositoryName}" else "")
+      "CI_PULL_REQUEST_SLUG" -> (if (job.pullRequestId.isDefined) s"${job.buildUserName}/${job.buildRepositoryName}" else ""),
+      "CI_PULL_REQUEST_TITLE" -> job.pullRequestTitle.getOrElse(""),
+      "CI_PULL_REQUEST_TARGET_BRANCH" -> job.pullRequestTargetBranch.getOrElse(""),
+      "CI_SERVER_URL" -> targetUrl.getOrElse("")
     ).asJava)
     val process = builder.start()
     runningProcess.set(Some(process))
@@ -264,19 +274,19 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     exitValue
   }
 
-  private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File, deadline: Long): Int = {
+  private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File, deadline: Long, targetUrl: Option[String]): Int = {
     // run script
     val command = prepareBuildScript(buildDir, job.config.buildScript)
-    runProcess(job, buildDir, workspaceDir, command, deadline)
+    runProcess(job, buildDir, workspaceDir, command, deadline, targetUrl)
   }
 
-  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File, deadline: Long): Int = {
+  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File, deadline: Long, targetUrl: Option[String]): Int = {
     // run script
     val command = prepareBuildFile(buildDir, job.config.buildScript)
-    runProcess(job, buildDir, workspaceDir, command, deadline)
+    runProcess(job, buildDir, workspaceDir, command, deadline, targetUrl)
   }
 
-  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String, deadline: Long): Int = {
+  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String, deadline: Long, targetUrl: Option[String]): Int = {
     val tagName = s"gitbucket-ci/${job.buildUserName}/${job.buildRepositoryName}:${job.sha.substring(0, 7)}"
     val containerName = s"${job.buildUserName}-${job.buildRepositoryName}-${job.buildNumber}"
     val dockerfile = if(job.config.buildScript.nonEmpty){job.config.buildScript}else{"Dockerfile"}
@@ -285,20 +295,20 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val runContainerCommand = s"${dockerCommand} run --rm --name ${containerName} ${tagName}"
 
     sb.append(s"${buildContainerCommand}\n")
-    val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand, deadline)
+    val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand, deadline, targetUrl)
     if (buildResult == 0){
       sb.append(s"${runContainerCommand}\n")
-      val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand, deadline)
+      val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand, deadline, targetUrl)
 
       // Killing the docker client doesn't stop the container itself.
       if (cancelled.get() || System.currentTimeMillis() >= deadline) {
-        runProcess(job, buildDir, workspaceDir, s"${dockerCommand} kill ${containerName}", Long.MaxValue)
+        runProcess(job, buildDir, workspaceDir, s"${dockerCommand} kill ${containerName}", Long.MaxValue, targetUrl)
       }
 
       val imageId = Process(s"""${dockerCommand} images --format {{.ID}} ${tagName}""").!!.stripLineEnd
       val rmImageCommand = s"${dockerCommand} rmi --force ${imageId}"
       sb.append(s"$rmImageCommand\n")
-      runProcess(job, buildDir, workspaceDir, rmImageCommand, Long.MaxValue)
+      runProcess(job, buildDir, workspaceDir, rmImageCommand, Long.MaxValue, targetUrl)
 
       exitCode
     }else{
@@ -306,7 +316,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     }
   }
 
-  private def runDockerComposeJob(job: BuildJob, buildDir: File, workspaceDir: File, composeCommand: String, deadline: Long): Int = {
+  private def runDockerComposeJob(job: BuildJob, buildDir: File, workspaceDir: File, composeCommand: String, deadline: Long, targetUrl: Option[String]): Int = {
     val composeFile = if(job.config.buildScript.nonEmpty){job.config.buildScript}else{"docker-compose.yml"}
     val containerName = s"gitbucket_ci_${job.buildUserName}_${job.buildRepositoryName}_${job.buildNumber}"
 
@@ -316,11 +326,11 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val downCommand = s"${composeCommand} -f ${composeFile} down --rmi all"
 
     sb.append(s"${buildCommand}\n")
-    val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand, deadline)
+    val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand, deadline, targetUrl)
     if(buildResult == 0){
       sb.append(s"${runCommand}\n")
-      val exitCode = runProcess(job, buildDir, workspaceDir, runCommand, deadline)
-      runProcess(job, buildDir, workspaceDir, downCommand, Long.MaxValue)
+      val exitCode = runProcess(job, buildDir, workspaceDir, runCommand, deadline, targetUrl)
+      runProcess(job, buildDir, workspaceDir, downCommand, Long.MaxValue, targetUrl)
 
       exitCode
     }else{

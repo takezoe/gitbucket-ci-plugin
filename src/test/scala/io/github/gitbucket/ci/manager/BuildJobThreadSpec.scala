@@ -15,18 +15,18 @@ class BuildJobThreadSpec extends AnyFunSuite {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
     val config = CIConfig("root", "test", "docker-compose", "", false, None, None, false)
-    val job = BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, now, None, account, config)
+    val job = BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, None, None, None, now, None, account, config)
 
     val thread = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]())
     val method = classOf[BuildJobThread].getDeclaredMethod(
-      "runDockerComposeJob", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long])
+      "runDockerComposeJob", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
     method.setAccessible(true)
 
     // "build" exits 1 (failure); run/down would exit 42 if they were ever invoked
     val dir = Files.createTempDirectory("ci-test").toFile
     val fakeCompose = script(dir, """test "$3" = build && exit 1; exit 42""")
 
-    val result = method.invoke(thread, job, dir, dir, fakeCompose, java.lang.Long.valueOf(Long.MaxValue)).asInstanceOf[Integer].intValue()
+    val result = method.invoke(thread, job, dir, dir, fakeCompose, java.lang.Long.valueOf(Long.MaxValue), None).asInstanceOf[Integer].intValue()
     assert(result == 1, "must return the build's own exit code, not run's, when the build fails")
   }
 
@@ -34,11 +34,11 @@ class BuildJobThreadSpec extends AnyFunSuite {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
     val config = CIConfig("root", "test", "script", "", false, None, None, false)
-    val job = BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, now, None, account, config)
+    val job = BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, None, None, None, now, None, account, config)
 
     val thread = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]())
     val method = classOf[BuildJobThread].getDeclaredMethod(
-      "runProcess", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long])
+      "runProcess", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
     method.setAccessible(true)
 
     val dir = Files.createTempDirectory("ci-test").toFile
@@ -48,7 +48,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
     // otherwise the child keeps the output pipe open and blocks the worker thread anyway.
     val pidFile = new File(dir, "child.pid")
     val command = script(dir, s"trap '' TERM; sleep 60 & echo $$! > ${pidFile.getAbsolutePath}; wait")
-    val result = method.invoke(thread, job, dir, dir, command, java.lang.Long.valueOf(start + 300)).asInstanceOf[Integer].intValue()
+    val result = method.invoke(thread, job, dir, dir, command, java.lang.Long.valueOf(start + 300), None).asInstanceOf[Integer].intValue()
     val elapsed = System.currentTimeMillis() - start
 
     assert(result != 0, "a timed-out build must not report success")
@@ -63,7 +63,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
 
   test("the timeout covers the whole build, not each process") {
     val method = classOf[BuildJobThread].getDeclaredMethod(
-      "runDockerComposeJob", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long])
+      "runDockerComposeJob", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
     method.setAccessible(true)
 
     // "build" uses 2s of the 3s budget; "run" would take 60s. A per-process timeout would end after ~5s.
@@ -71,7 +71,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
     val fakeCompose = script(dir, """case "$3" in build) sleep 2;; run) sleep 60;; esac""")
     val start = System.currentTimeMillis()
 
-    val result = method.invoke(newThread(), newJob("docker-compose"), dir, dir, fakeCompose, java.lang.Long.valueOf(start + 3000)).asInstanceOf[Integer].intValue()
+    val result = method.invoke(newThread(), newJob("docker-compose"), dir, dir, fakeCompose, java.lang.Long.valueOf(start + 3000), None).asInstanceOf[Integer].intValue()
     val elapsed = System.currentTimeMillis() - start
 
     assert(result != 0)
@@ -81,7 +81,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
   private def newJob(buildType: String): BuildJob = {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
-    BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, now, None, account,
+    BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, None, None, None, now, None, account,
       CIConfig("root", "test", buildType, "", false, None, None, false))
   }
 
