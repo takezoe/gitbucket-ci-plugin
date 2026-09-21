@@ -51,7 +51,8 @@ object CIController {
     composeFile: Option[String],
     notification: Boolean,
     skipWords: Option[String],
-    runWords: Option[String]
+    runWords: Option[String],
+    buildForkPullRequests: Boolean
   )
 
   case class CISystemConfigForm(
@@ -79,7 +80,8 @@ class CIController extends ControllerBase
     "composeFile" -> trim(label("docker-compose.yml", optional(text()))),
     "notification" -> trim(label("Notification", boolean())),
     "skipWords" -> trim(label("Skip words", optional(text()))),
-    "runWords" -> trim(label("Run words", optional(text())))
+    "runWords" -> trim(label("Run words", optional(text()))),
+    "buildForkPullRequests" -> trim(label("Build fork pull requests", boolean()))
   )(BuildConfigForm.apply)
 
   val ciSystemConfigForm = mapping(
@@ -339,7 +341,8 @@ class CIController extends ControllerBase
           }),
           form.notification,
           form.skipWords,
-          form.runWords
+          form.runWords,
+          form.buildForkPullRequests
         )
       ))
     } else {

@@ -72,6 +72,17 @@
                 <label for="runWords">Run words</label> (comma-separated words)
                 <input type="text" name="runWords" id="runWords" class="form-control" value="@config.map(_.runWords).getOrElse("ok to test, test this please")">
               </fieldset>
+              <fieldset class="form-group">
+                <label class="checkbox" for="buildForkPullRequests">
+                  <input type="checkbox" id="buildForkPullRequests" name="buildForkPullRequests"@if(config.exists(_.buildForkPullRequests)){ checked}/>
+                  Build pull requests from forks
+                  <div class="normal muted">
+                    When disabled (default), pull requests from forks will not automatically trigger a build.
+                    This avoids running unreviewed code from external contributors. A maintainer can still
+                    trigger a build manually, or by commenting one of the run words above.
+                  </div>
+                </label>
+              </fieldset>
             </div>
           </div>
         </div>

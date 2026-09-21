@@ -14,7 +14,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
   test("runDockerComposeJob does not run after a failed build") {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
-    val config = CIConfig("root", "test", "docker-compose", "", false, None, None)
+    val config = CIConfig("root", "test", "docker-compose", "", false, None, None, false)
     val job = BuildJob("root", "test", "root", "test", 1, "master", "0" * 40, "msg", "root", "root@x", None, now, None, account, config)
 
     val thread = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]())

@@ -53,7 +53,8 @@ class CICommitHook extends ReceiveHook
               .list
             buildConfig <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
           } yield {
-            if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
+            val isFork = owner != pullreq.userName || repository != pullreq.repositoryName
+            if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty && buildConfig.allowsBuild(isFork)){
               runBuild(
                 userName            = pullreq.userName,
                 repositoryName      = pullreq.repositoryName,

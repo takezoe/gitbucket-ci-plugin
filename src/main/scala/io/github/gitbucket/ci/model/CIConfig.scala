@@ -16,7 +16,8 @@ trait CIConfigComponent { self: gitbucket.core.model.Profile =>
     val notification = column[Boolean]("NOTIFICATION")
     val skipWords = column[String]("SKIP_WORDS")
     val runWords = column[String]("RUN_WORDS")
-    def * = (userName, repositoryName, buildType, buildScript, notification, skipWords.?, runWords.?) <> (CIConfig.tupled, CIConfig.unapply)
+    val buildForkPullRequests = column[Boolean]("BUILD_FORK_PULL_REQUESTS")
+    def * = (userName, repositoryName, buildType, buildScript, notification, skipWords.?, runWords.?, buildForkPullRequests) <> (CIConfig.tupled, CIConfig.unapply)
   }
 }
 
@@ -27,8 +28,15 @@ case class CIConfig(
   buildScript: String,
   notification: Boolean,
   skipWords: Option[String],
-  runWords: Option[String]
+  runWords: Option[String],
+  buildForkPullRequests: Boolean
 ){
   lazy val skipWordsSeq: Seq[String] = skipWords.map(_.split(",").map(_.trim).toSeq).getOrElse(Nil)
   lazy val runWordsSeq: Seq[String] = runWords.map(_.split(",").map(_.trim).toSeq).getOrElse(Nil)
+
+  /**
+   * Same-repo branches always build; code from a fork only builds
+   * automatically if the repo owner has explicitly opted in.
+   */
+  def allowsBuild(isFork: Boolean): Boolean = !isFork || buildForkPullRequests
 }
