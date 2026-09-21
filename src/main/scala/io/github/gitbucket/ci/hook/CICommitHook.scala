@@ -25,7 +25,10 @@ class CICommitHook extends ReceiveHook
           val revCommit = JGitUtil.getRevCommitFromId(git, command.getNewId)
 
           loadCIConfig(owner, repository).foreach { buildConfig =>
-            if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
+            if(
+              buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty &&
+              buildConfig.skipWordsSeq.find(branch.contains).isEmpty
+            ){
               runBuild(
                 userName            = owner,
                 repositoryName      = repository,
