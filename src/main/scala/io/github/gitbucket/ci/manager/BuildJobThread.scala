@@ -114,20 +114,23 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
             throw new BuildJobCancelException()
           }
 
+          val timeoutMillis =
+            if(systemCIConfig.buildTimeoutMinutes > 0) systemCIConfig.buildTimeoutMinutes.toLong * 60 * 1000 else 0L
+
           job.config.buildType match {
             case "script" =>
-              runScriptJob(job, buildDir, dir)
+              runScriptJob(job, buildDir, dir, timeoutMillis)
             case "file" =>
-              runFileJob(job, buildDir, dir)
+              runFileJob(job, buildDir, dir, timeoutMillis)
             case "docker" =>
               if(systemCIConfig.enableDocker){
-                runDockerJob(job, buildDir, dir, dockerCommand)
+                runDockerJob(job, buildDir, dir, dockerCommand, timeoutMillis)
               }else{
                 throw new RuntimeException("Docker job is disabled.")
               }
             case "docker-compose" =>
               if(systemCIConfig.enableDockerCompose){
-                runDockerComposeJob(job, buildDir, dir, dockerComposeCommand)
+                runDockerComposeJob(job, buildDir, dir, dockerComposeCommand, timeoutMillis)
               }else{
                 throw new RuntimeException("Docker compose job is disabled.")
               }
@@ -215,7 +218,10 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     }
   }
 
-  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String): Int = {
+  /**
+   * @param timeoutMillis wall-clock cap on this single subprocess; <= 0 disables it.
+   */
+  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, timeoutMillis: Long): Int = {
     val process = Process(command, workspaceDir,
       "CI" -> "true",
       "HOME" -> buildDir.getAbsolutePath,
@@ -230,30 +236,47 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     ).run(new BuildProcessLogger(sb))
     runningProcess.set(Some(process))
 
-    while (process.isAlive()) {
-      Thread.sleep(1000)
+    val deadline = if(timeoutMillis > 0) Some(System.currentTimeMillis() + timeoutMillis) else None
+    var timedOut = false
+    while (process.isAlive() && !timedOut) {
+      if (deadline.exists(System.currentTimeMillis() >= _)) {
+        timedOut = true
+      } else {
+        Thread.sleep(100)
+      }
     }
 
-    val exitValue = process.exitValue()
+    if (timedOut) {
+      sb.append(s"BUILD TIMEOUT: exceeded ${timeoutMillis} ms, killing the build process\n")
+      process.destroy()
+      // Give it a short grace period to exit before giving up on it.
+      var waited = 0
+      while (process.isAlive() && waited < 50) {
+        Thread.sleep(100)
+        waited += 1
+      }
+    }
+
+    val exitValue = if (process.isAlive()) -1 else process.exitValue()
     if(exitValue != 0){
       sb.append(s"EXIT CODE: ${exitValue}\n")
     }
     exitValue
   }
 
-  private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
+  private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File, timeoutMillis: Long): Int = {
     // run script
     val command = prepareBuildScript(buildDir, job.config.buildScript)
-    runProcess(job, buildDir, workspaceDir, command)
+    runProcess(job, buildDir, workspaceDir, command, timeoutMillis)
   }
 
-  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File): Int = {
+  private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File, timeoutMillis: Long): Int = {
     // run script
     val command = prepareBuildFile(buildDir, job.config.buildScript)
-    runProcess(job, buildDir, workspaceDir, command)
+    runProcess(job, buildDir, workspaceDir, command, timeoutMillis)
   }
 
-  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String): Int = {
+  private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String, timeoutMillis: Long): Int = {
     val tagName = s"gitbucket-ci/${job.buildUserName}/${job.buildRepositoryName}:${job.sha.substring(0, 7)}"
     val containerName = s"${job.buildUserName}-${job.buildRepositoryName}-${job.buildNumber}"
     val dockerfile = if(job.config.buildScript.nonEmpty){job.config.buildScript}else{"Dockerfile"}
@@ -262,15 +285,15 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val runContainerCommand = s"${dockerCommand} run --rm --name ${containerName} ${tagName}"
 
     sb.append(s"${buildContainerCommand}\n")
-    val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand)
+    val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand, timeoutMillis)
     if (buildResult == 0){
       sb.append(s"${runContainerCommand}\n")
-      val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand)
+      val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand, timeoutMillis)
 
       val imageId = Process(s"""${dockerCommand} images --format {{.ID}} ${tagName}""").!!.stripLineEnd
       val rmImageCommand = s"${dockerCommand} rmi --force ${imageId}"
       sb.append(s"$rmImageCommand\n")
-      runProcess(job, buildDir, workspaceDir, rmImageCommand)
+      runProcess(job, buildDir, workspaceDir, rmImageCommand, timeoutMillis)
 
       exitCode
     }else{
@@ -278,7 +301,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     }
   }
 
-  private def runDockerComposeJob(job: BuildJob, buildDir: File, workspaceDir: File, composeCommand: String): Int = {
+  private def runDockerComposeJob(job: BuildJob, buildDir: File, workspaceDir: File, composeCommand: String, timeoutMillis: Long): Int = {
     val composeFile = if(job.config.buildScript.nonEmpty){job.config.buildScript}else{"docker-compose.yml"}
     val containerName = s"gitbucket_ci_${job.buildUserName}_${job.buildRepositoryName}_${job.buildNumber}"
 
@@ -288,11 +311,11 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val downCommand = s"${composeCommand} -f ${composeFile} down --rmi all"
 
     sb.append(s"${buildCommand}\n")
-    val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand)
+    val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand, timeoutMillis)
     if(buildResult == 0){
       sb.append(s"${runCommand}\n")
-      val exitCode = runProcess(job, buildDir, workspaceDir, runCommand)
-      runProcess(job, buildDir, workspaceDir, downCommand)
+      val exitCode = runProcess(job, buildDir, workspaceDir, runCommand, timeoutMillis)
+      runProcess(job, buildDir, workspaceDir, downCommand, timeoutMillis)
 
       exitCode
     }else{

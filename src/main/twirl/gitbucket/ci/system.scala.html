@@ -19,6 +19,14 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="control-label col-md-2" for="buildTimeoutMinutes">Build timeout (minutes)</label>
+          <div class="col-md-10">
+            <input type="input" name="buildTimeoutMinutes" id="buildTimeoutMinutes" class="form-control" value="@systemConfig.buildTimeoutMinutes">
+            <span id="error-buildTimeoutMinutes" class="error"></span>
+            <span class="help-block">A build is killed if it runs longer than this. 0 disables the timeout.</span>
+          </div>
+        </div>
+        <div class="form-group">
           <label class="checkbox" for="enableDocker">
             <input type="checkbox" id="enableDocker" name="enableDocker"@if(systemConfig.enableDocker){ checked}/>
             Enable docker
