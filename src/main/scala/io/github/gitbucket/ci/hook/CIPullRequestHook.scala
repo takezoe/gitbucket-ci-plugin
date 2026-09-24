@@ -13,6 +13,17 @@ import org.eclipse.jgit.api.Git
 import profile.api._
 import scala.util.Using
 
+object CIPullRequestHook {
+
+  /**
+   * Whether a PR comment should re-trigger a build: the commenter must be a writer
+   * on the repository AND the comment must contain a configured run word.
+   */
+  private[hook] def shouldRunOnComment(isWriter: Boolean, content: String, runWords: Seq[String]): Boolean =
+    isWriter && runWords.exists(content.contains)
+
+}
+
 class CIPullRequestHook extends PullRequestHook
   with PullRequestService with IssuesService with CommitsService with AccountService with WebHookService
   with WebHookPullRequestService with WebHookPullRequestReviewCommentService with ActivityService with MergeService
@@ -72,7 +83,8 @@ class CIPullRequestHook extends PullRequestHook
         buildAuthor  <- context.loginAccount
         buildConfig  <- loadCIConfig(pullreq.userName, pullreq.repositoryName)
       } yield {
-        if(!buildConfig.runWordsSeq.find(content.contains).isEmpty){
+        val isWriter = isWritable(repository.repository, Some(buildAuthor))
+        if(CIPullRequestHook.shouldRunOnComment(isWriter, content, buildConfig.runWordsSeq)){
           val revCommit = Using.resource(Git.open(getRepositoryDir(pullreq.requestUserName, pullreq.requestRepositoryName))) { git =>
             val objectId = git.getRepository.resolve(pullreq.commitIdTo)
             JGitUtil.getRevCommitFromId(git, objectId)
