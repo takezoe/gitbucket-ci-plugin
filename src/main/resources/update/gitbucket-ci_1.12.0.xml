@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changeSet>
+    <addColumn tableName="CI_CONFIG">
+        <column name="BUILD_FORK_PULL_REQUESTS" type="boolean" nullable="true"/>
+    </addColumn>
+    <update tableName="CI_CONFIG">
+        <column name="BUILD_FORK_PULL_REQUESTS" valueBoolean="false"/>
+    </update>
+    <addNotNullConstraint tableName="CI_CONFIG" columnName="BUILD_FORK_PULL_REQUESTS" columnDataType="boolean"/>
+</changeSet>
