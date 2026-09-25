@@ -25,11 +25,19 @@ In the build script, following environment variables are available:
 - `CI_BUILD_DIR` (same as HOME)
 - `CI_BUILD_NUMBER`
 - `CI_BUILD_BRANCH`
+- `CI_BUILD_TRIGGERED_BY` (account that triggered the build: pusher, PR opener or commenter)
 - `CI_COMMIT_ID`
+- `CI_COMMIT_SHORT_SHA` (first 7 characters of `CI_COMMIT_ID`)
+- `CI_COMMIT_BEFORE_SHA` (previous commit on the branch, empty for a new branch or a PR-triggered build)
 - `CI_COMMIT_MESSAGE`
+- `CI_COMMIT_AUTHOR` (committer name)
+- `CI_COMMIT_AUTHOR_EMAIL` (committer email)
 - `CI_REPO_SLUG` ("owner/repo")
 - `CI_PULL_REQUEST` (pull request id or "false")
 - `CI_PULL_REQUEST_SLUG` ("owner/repo" or "")
+- `CI_PULL_REQUEST_TITLE` (empty when not a pull request build)
+- `CI_PULL_REQUEST_TARGET_BRANCH` (the PR's base branch, empty when not a pull request build)
+- `CI_SERVER_URL` (link back to this build's own page, empty if the GitBucket base URL isn't configured)
 
 ### Web API
 

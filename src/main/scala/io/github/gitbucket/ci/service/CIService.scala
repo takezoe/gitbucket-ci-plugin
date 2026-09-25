@@ -22,7 +22,10 @@ case class BuildJob(
   commitMessage: String,
   commitUserName: String,
   commitMailAddress: String,
+  commitBeforeSha: Option[String],
   pullRequestId: Option[Int],
+  pullRequestTitle: Option[String],
+  pullRequestTargetBranch: Option[String],
   queuedTime: java.util.Date,
   startTime: Option[java.util.Date],
   buildAuthor: Account,
@@ -54,8 +57,8 @@ trait CIService { self: AccountService with RepositoryService =>
 
   def saveCISystemConfig(config: CISystemConfig)(implicit s: Session): Unit = {
     CISystemConfigs.map { t =>
-      (t.maxBuildHistory, t.maxParallelBuilds, t.enableDocker, t.dockerCommand.?, t.enableDockerCompose, t.dockerComposeCommand.?)
-    }.update((config.maxBuildHistory, config.maxParallelBuilds, config.enableDocker, config.dockerCommand, config.enableDockerCompose, config.dockerComposeCommand))
+      (t.maxBuildHistory, t.maxParallelBuilds, t.enableDocker, t.dockerCommand.?, t.enableDockerCompose, t.dockerComposeCommand.?, t.buildTimeoutMinutes)
+    }.update((config.maxBuildHistory, config.maxParallelBuilds, config.enableDocker, config.dockerCommand, config.enableDockerCompose, config.dockerComposeCommand, config.buildTimeoutMinutes))
   }
 
   def loadCISystemConfig()(implicit s: Session): CISystemConfig = {
@@ -108,23 +111,28 @@ trait CIService { self: AccountService with RepositoryService =>
 
   def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
                buildBranch: String, sha: String, commitMessage: String, commitUserName: String, commitMailAddress: String,
-               pullRequestId: Option[Int], buildAuthor: Account, config: CIConfig)(implicit s: Session): Unit = {
+               pullRequestId: Option[Int], buildAuthor: Account, config: CIConfig,
+               commitBeforeSha: Option[String] = None, pullRequestTitle: Option[String] = None,
+               pullRequestTargetBranch: Option[String] = None)(implicit s: Session): Unit = {
     BuildManager.queueBuildJob(BuildJob(
-      userName            = userName,
-      repositoryName      = repositoryName,
-      buildUserName       = buildUserName,
-      buildRepositoryName = buildRepositoryName,
-      buildNumber         = BuildNumberGenerator.generateBuildNumber(userName, repositoryName),
-      buildBranch         = buildBranch,
-      sha                 = sha,
-      commitMessage       = commitMessage,
-      commitUserName      = commitUserName,
-      commitMailAddress   = commitMailAddress,
-      pullRequestId       = pullRequestId,
-      queuedTime          = new java.util.Date(),
-      startTime           = None,
-      buildAuthor         = buildAuthor,
-      config              = config
+      userName                = userName,
+      repositoryName          = repositoryName,
+      buildUserName           = buildUserName,
+      buildRepositoryName     = buildRepositoryName,
+      buildNumber             = BuildNumberGenerator.generateBuildNumber(userName, repositoryName),
+      buildBranch             = buildBranch,
+      sha                     = sha,
+      commitMessage           = commitMessage,
+      commitUserName          = commitUserName,
+      commitMailAddress       = commitMailAddress,
+      commitBeforeSha         = commitBeforeSha,
+      pullRequestId           = pullRequestId,
+      pullRequestTitle        = pullRequestTitle,
+      pullRequestTargetBranch = pullRequestTargetBranch,
+      queuedTime              = new java.util.Date(),
+      startTime               = None,
+      buildAuthor             = buildAuthor,
+      config                  = config
     ))
   }
 

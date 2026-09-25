@@ -8,6 +8,7 @@ import gitbucket.core.util.JGitUtil
 import io.github.gitbucket.ci.model.CIConfig
 import io.github.gitbucket.ci.service.CIService
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.transport.{ReceiveCommand, ReceivePack}
 import profile.blockingApi._
 import scala.util.Using
@@ -23,6 +24,8 @@ class CICommitHook extends ReceiveHook
         Using.resource(Git.open(getRepositoryDir(owner, repository))) { git =>
           val sha = command.getNewId.name
           val revCommit = JGitUtil.getRevCommitFromId(git, command.getNewId)
+          // A brand-new branch has no "before" commit; JGit represents that as the zero id.
+          val beforeSha = Option(command.getOldId).filterNot(_.equals(ObjectId.zeroId)).map(_.name)
 
           loadCIConfig(owner, repository).foreach { buildConfig =>
             if(buildConfig.skipWordsSeq.find(revCommit.getFullMessage.contains).isEmpty){
@@ -36,7 +39,10 @@ class CICommitHook extends ReceiveHook
                 commitMessage       = revCommit.getShortMessage,
                 commitUserName      = revCommit.getCommitterIdent.getName,
                 commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+                commitBeforeSha     = beforeSha,
                 pullRequestId       = None,
+                pullRequestTitle    = None,
+                pullRequestTargetBranch = None,
                 pusher              = pusher,
                 config              = buildConfig
               )
@@ -65,7 +71,10 @@ class CICommitHook extends ReceiveHook
                 commitMessage       = revCommit.getShortMessage,
                 commitUserName      = revCommit.getCommitterIdent.getName,
                 commitMailAddress   = revCommit.getCommitterIdent.getEmailAddress,
+                commitBeforeSha     = beforeSha,
                 pullRequestId       = Some(pullreq.issueId),
+                pullRequestTitle    = Some(issue.title),
+                pullRequestTargetBranch = Some(pullreq.branch),
                 pusher              = pusher,
                 config              = buildConfig
               )
@@ -78,21 +87,26 @@ class CICommitHook extends ReceiveHook
 
   private def runBuild(userName: String, repositoryName: String, buildUserName: String, buildRepositoryName: String,
                        buildBranch: String, sha: String, commitMessage: String, commitUserName: String, commitMailAddress: String,
-                       pullRequestId: Option[Int], pusher: String, config: CIConfig)(implicit session: Session): Unit = {
+                       pullRequestId: Option[Int], pusher: String, config: CIConfig,
+                       commitBeforeSha: Option[String], pullRequestTitle: Option[String],
+                       pullRequestTargetBranch: Option[String])(implicit session: Session): Unit = {
     getAccountByUserName(pusher).foreach { pusherAccount =>
       runBuild(
-        userName            = userName,
-        repositoryName      = repositoryName,
-        buildUserName       = buildUserName,
-        buildRepositoryName = buildRepositoryName,
-        buildBranch         = buildBranch,
-        sha                 = sha,
-        commitMessage       = commitMessage,
-        commitUserName      = commitUserName,
-        commitMailAddress   = commitMailAddress,
-        pullRequestId       = pullRequestId,
-        buildAuthor         = pusherAccount,
-        config              = config
+        userName                = userName,
+        repositoryName          = repositoryName,
+        buildUserName           = buildUserName,
+        buildRepositoryName     = buildRepositoryName,
+        buildBranch             = buildBranch,
+        sha                     = sha,
+        commitMessage           = commitMessage,
+        commitUserName          = commitUserName,
+        commitMailAddress       = commitMailAddress,
+        commitBeforeSha         = commitBeforeSha,
+        pullRequestId           = pullRequestId,
+        pullRequestTitle        = pullRequestTitle,
+        pullRequestTargetBranch = pullRequestTargetBranch,
+        buildAuthor             = pusherAccount,
+        config                  = config
       )
     }
   }

@@ -13,7 +13,8 @@ trait CISystemConfigComponent { self: gitbucket.core.model.Profile =>
     val dockerCommand = column[String]("DOCKER_COMMAND")
     val enableDockerCompose = column[Boolean]("ENABLE_DOCKER_COMPOSE")
     val dockerComposeCommand = column[String]("DOCKER_COMPOSE_COMMAND")
-    def * = (maxBuildHistory, maxParallelBuilds, enableDocker, dockerCommand.?, enableDockerCompose, dockerComposeCommand.?) <> (CISystemConfig.tupled, CISystemConfig.unapply)
+    val buildTimeoutMinutes = column[Int]("BUILD_TIMEOUT_MINUTES")
+    def * = (maxBuildHistory, maxParallelBuilds, enableDocker, dockerCommand.?, enableDockerCompose, dockerComposeCommand.?, buildTimeoutMinutes) <> (CISystemConfig.tupled, CISystemConfig.unapply)
   }
 }
 
@@ -23,5 +24,7 @@ case class CISystemConfig(
   enableDocker: Boolean,
   dockerCommand: Option[String],
   enableDockerCompose: Boolean,
-  dockerComposeCommand: Option[String]
+  dockerComposeCommand: Option[String],
+  // Wall-clock cap on a whole build, across all processes it spawns; <= 0 disables the timeout.
+  buildTimeoutMinutes: Int
 )
