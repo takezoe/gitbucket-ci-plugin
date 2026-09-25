@@ -25,6 +25,6 @@ case class CISystemConfig(
   dockerCommand: Option[String],
   enableDockerCompose: Boolean,
   dockerComposeCommand: Option[String],
-  // Wall-clock cap per spawned build subprocess; <= 0 disables the timeout.
+  // Wall-clock cap on a whole build, across all processes it spawns; <= 0 disables the timeout.
   buildTimeoutMinutes: Int
 )
