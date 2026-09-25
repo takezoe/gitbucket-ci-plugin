@@ -61,7 +61,8 @@ object CIController {
     enableDocker: Boolean,
     dockerCommand: Option[String],
     enableDockerCompose: Boolean,
-    dockerComposeCommand: Option[String]
+    dockerComposeCommand: Option[String],
+    buildTimeoutMinutes: Int
   )
 
 }
@@ -90,7 +91,8 @@ class CIController extends ControllerBase
     "enableDocker" -> trim(label("Enable docker", boolean())),
     "dockerCommand" -> trim(label("docker command", optional(text()))),
     "enableDockerCompose" -> trim(label("Enable docker-compse", boolean())),
-    "dockerComposeCommand" -> trim(label("docker-compose command", optional(text())))
+    "dockerComposeCommand" -> trim(label("docker-compose command", optional(text()))),
+    "buildTimeoutMinutes" -> trim(label("Build timeout (minutes)", number()))
   )(CISystemConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
@@ -374,7 +376,8 @@ class CIController extends ControllerBase
       enableDocker = form.enableDocker,
       dockerCommand = form.dockerCommand,
       enableDockerCompose = form.enableDockerCompose,
-      dockerComposeCommand = form.dockerComposeCommand
+      dockerComposeCommand = form.dockerComposeCommand,
+      buildTimeoutMinutes = form.buildTimeoutMinutes
     ))
     BuildManager.setMaxParallelBuilds(form.maxParallelBuilds)
     redirect("/admin/build")
