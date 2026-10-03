@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 
 import scala.jdk.CollectionConverters._
 import scala.sys.process.Process
-import scala.util.control.ControlThrowable
+import scala.util.control.{ControlThrowable, NonFatal}
 import scala.util.Using
 
 
@@ -41,12 +41,19 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     logger.info("Start BuildJobThread-" + this.getId)
     try {
       while(continue.get()){
-        runBuild(queue.take())
+        val job = queue.take()
+        try {
+          runBuild(job)
+        } catch {
+          // Only fail this job: an escaping exception would kill the worker and leave later builds waiting forever.
+          case NonFatal(e) => logger.error(s"${job.userName}/${job.repositoryName} #${job.buildNumber}", e)
+        }
       }
     } catch {
       case _: InterruptedException => cancel()
+    } finally {
+      threads.remove(this)
     }
-    threads.remove(this)
     logger.info("Stop BuildJobThread-" + this.getId)
   }
 
@@ -57,7 +64,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     sb.setLength(0)
   }
 
-  private def runBuild(job: BuildJob): Unit = {
+  private[manager] def runBuild(job: BuildJob): Unit = {
     val startTime = new java.util.Date()
     initState(Some(job.copy(startTime = Some(startTime))))
 
@@ -153,7 +160,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       val endTime = new java.util.Date()
 
       // Create or update commit status
-      Database() withTransaction { implicit session =>
+      val recipients = Database() withTransaction { implicit session =>
         saveCIResult(
           CIResult(
             userName            = job.userName,
@@ -191,22 +198,28 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
           creator        = job.buildAuthor // TODO right??
         )
 
-        // Send email
         if(job.config.notification && settings.useSMTP && exitValue != 0){
           val committer = getAccountByMailAddress(job.commitMailAddress, false).map(_.mailAddress).toSeq
           val collaborators = getCollaboratorUserNames(job.userName, job.repositoryName).flatMap { userName =>
             getAccountByUserName(userName).map(_.mailAddress)
           }
+          (committer ++ collaborators).distinct
+        } else Nil
+      }
 
-          val subject = createMailSubject(job)
-          val markdown = createMailContent(job, settings, targetUrl)
-          val html = markdown2html(markdown)
+      // Send email once the result is committed: a failing mail server must not roll it back
+      if(recipients.nonEmpty){
+        val subject = createMailSubject(job)
+        val markdown = createMailContent(job, settings, targetUrl)
+        val html = markdown2html(markdown)
 
-          val mailer = new Mailer(settings)
+        val mailer = new Mailer(settings)
 
-          val recipients = (committer ++ collaborators).distinct
-          recipients.foreach { to =>
+        recipients.foreach { to =>
+          try {
             mailer.send(to, subject, markdown, Some(html))
+          } catch {
+            case NonFatal(e) => logger.warn(s"Failed to send the build failure notification for ${job.userName}/${job.repositoryName} #${job.buildNumber}", e)
           }
         }
       }

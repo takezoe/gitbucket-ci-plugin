@@ -2,7 +2,7 @@ package io.github.gitbucket.ci.manager
 
 import java.io.File
 import java.nio.file.Files
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import gitbucket.core.model.Account
 import io.github.gitbucket.ci.model.CIConfig
@@ -76,6 +76,34 @@ class BuildJobThreadSpec extends AnyFunSuite {
 
     assert(result != 0)
     assert(elapsed < 4500, s"the run step must only get what's left of the build's time, took ${elapsed}ms")
+  }
+
+  test("a job that fails outside the build itself doesn't kill the worker; later jobs still run") {
+    val queue = new LinkedBlockingQueue[BuildJob]()
+    val threads = new LinkedBlockingQueue[BuildJobThread]()
+    val ran = new LinkedBlockingQueue[Integer]()
+    val thread = new BuildJobThread(queue, threads) {
+      // Stands in for e.g. the failure mail throwing because the SMTP server is unreachable
+      override private[manager] def runBuild(job: BuildJob): Unit = {
+        ran.add(job.buildNumber)
+        if (job.buildNumber == 1) throw new RuntimeException("SMTP server unreachable")
+      }
+    }
+    thread.setDaemon(true)
+    threads.add(thread)
+    thread.start()
+    try {
+      queue.add(newJob("script").copy(buildNumber = 1))
+      queue.add(newJob("script").copy(buildNumber = 2))
+
+      assert(ran.poll(5, TimeUnit.SECONDS) == 1)
+      assert(ran.poll(5, TimeUnit.SECONDS) == 2, "the worker must survive job 1 and go on to job 2")
+      assert(thread.isAlive && threads.contains(thread))
+    } finally {
+      thread.interrupt()
+      thread.join(5000)
+    }
+    assert(!threads.contains(thread), "a stopped worker must unregister itself")
   }
 
   private def newJob(buildType: String): BuildJob = {
