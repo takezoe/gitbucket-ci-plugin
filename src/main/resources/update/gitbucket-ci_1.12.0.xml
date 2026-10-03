@@ -7,4 +7,12 @@
         <column name="BUILD_FORK_PULL_REQUESTS" valueBoolean="false"/>
     </update>
     <addNotNullConstraint tableName="CI_CONFIG" columnName="BUILD_FORK_PULL_REQUESTS" columnDataType="boolean"/>
+
+    <addColumn tableName="CI_SYSTEM_CONFIG">
+        <column name="BUILD_TIMEOUT_MINUTES" type="int" nullable="true"/>
+    </addColumn>
+    <update tableName="CI_SYSTEM_CONFIG">
+        <column name="BUILD_TIMEOUT_MINUTES" valueNumeric="60"/>
+    </update>
+    <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="BUILD_TIMEOUT_MINUTES" columnDataType="int"/>
 </changeSet>
