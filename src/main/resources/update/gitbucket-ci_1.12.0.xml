@@ -15,4 +15,13 @@
         <column name="BUILD_TIMEOUT_MINUTES" valueNumeric="60"/>
     </update>
     <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="BUILD_TIMEOUT_MINUTES" columnDataType="int"/>
+
+    <addColumn tableName="CI_SYSTEM_CONFIG">
+        <column name="MAX_KEPT_WORKSPACES" type="int" nullable="true"/>
+    </addColumn>
+    <!-- Keep every stored build's workspace, as before, until an admin lowers it -->
+    <update tableName="CI_SYSTEM_CONFIG">
+        <column name="MAX_KEPT_WORKSPACES" valueComputed="MAX_BUILD_HISTORY"/>
+    </update>
+    <addNotNullConstraint tableName="CI_SYSTEM_CONFIG" columnName="MAX_KEPT_WORKSPACES" columnDataType="int"/>
 </changeSet>

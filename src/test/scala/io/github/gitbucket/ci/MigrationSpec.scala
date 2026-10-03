@@ -10,6 +10,7 @@ import org.junit.runner.Description
 import org.scalatest.Tag
 import org.scalatest.funsuite.AnyFunSuite
 import scala.jdk.CollectionConverters._
+import scala.util.Using
 import org.testcontainers.utility.DockerImageName
 
 object ExternalDBTest extends Tag("ExternalDBTest")
@@ -25,6 +26,20 @@ class MigrationSpec extends AnyFunSuite {
       new H2Database(),
       new Module(plugin.pluginId, plugin.versions.asJava)
     )
+  }
+
+  test("Migration H2 keeps every stored workspace by default") {
+    val conn = DriverManager.getConnection("jdbc:h2:mem:kept-workspaces", "sa", "sa")
+    try {
+      new Solidbase().migrate(conn, Thread.currentThread().getContextClassLoader(), new H2Database(),
+        new Module(plugin.pluginId, plugin.versions.asJava))
+      Using.resource(conn.createStatement().executeQuery("SELECT MAX_BUILD_HISTORY, MAX_KEPT_WORKSPACES FROM CI_SYSTEM_CONFIG")) { rs =>
+        assert(rs.next())
+        assert(rs.getInt("MAX_KEPT_WORKSPACES") == rs.getInt("MAX_BUILD_HISTORY"))
+      }
+    } finally {
+      conn.close()
+    }
   }
 
   implicit private val suiteDescription: Description = Description.createSuiteDescription(getClass)

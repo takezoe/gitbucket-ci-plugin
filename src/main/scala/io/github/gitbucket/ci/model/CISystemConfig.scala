@@ -14,7 +14,8 @@ trait CISystemConfigComponent { self: gitbucket.core.model.Profile =>
     val enableDockerCompose = column[Boolean]("ENABLE_DOCKER_COMPOSE")
     val dockerComposeCommand = column[String]("DOCKER_COMPOSE_COMMAND")
     val buildTimeoutMinutes = column[Int]("BUILD_TIMEOUT_MINUTES")
-    def * = (maxBuildHistory, maxParallelBuilds, enableDocker, dockerCommand.?, enableDockerCompose, dockerComposeCommand.?, buildTimeoutMinutes) <> (CISystemConfig.tupled, CISystemConfig.unapply)
+    val maxKeptWorkspaces = column[Int]("MAX_KEPT_WORKSPACES")
+    def * = (maxBuildHistory, maxParallelBuilds, enableDocker, dockerCommand.?, enableDockerCompose, dockerComposeCommand.?, buildTimeoutMinutes, maxKeptWorkspaces) <> (CISystemConfig.tupled, CISystemConfig.unapply)
   }
 }
 
@@ -26,5 +27,7 @@ case class CISystemConfig(
   enableDockerCompose: Boolean,
   dockerComposeCommand: Option[String],
   // Wall-clock cap on a whole build, across all processes it spawns; <= 0 disables the timeout.
-  buildTimeoutMinutes: Int
+  buildTimeoutMinutes: Int,
+  // Only the newest N builds of a repository keep their build directory; older ones keep just their output log.
+  maxKeptWorkspaces: Int
 )

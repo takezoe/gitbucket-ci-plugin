@@ -57,8 +57,8 @@ trait CIService { self: AccountService with RepositoryService =>
 
   def saveCISystemConfig(config: CISystemConfig)(implicit s: Session): Unit = {
     CISystemConfigs.map { t =>
-      (t.maxBuildHistory, t.maxParallelBuilds, t.enableDocker, t.dockerCommand.?, t.enableDockerCompose, t.dockerComposeCommand.?, t.buildTimeoutMinutes)
-    }.update((config.maxBuildHistory, config.maxParallelBuilds, config.enableDocker, config.dockerCommand, config.enableDockerCompose, config.dockerComposeCommand, config.buildTimeoutMinutes))
+      (t.maxBuildHistory, t.maxParallelBuilds, t.enableDocker, t.dockerCommand.?, t.enableDockerCompose, t.dockerComposeCommand.?, t.buildTimeoutMinutes, t.maxKeptWorkspaces)
+    }.update((config.maxBuildHistory, config.maxParallelBuilds, config.enableDocker, config.dockerCommand, config.enableDockerCompose, config.dockerComposeCommand, config.buildTimeoutMinutes, config.maxKeptWorkspaces))
   }
 
   def loadCISystemConfig()(implicit s: Session): CISystemConfig = {
@@ -195,12 +195,23 @@ trait CIService { self: AccountService with RepositoryService =>
     if(!buildDir.exists){
       buildDir.mkdirs()
     }
-    FileUtils.write(new java.io.File(buildDir, "output"), output, "UTF-8")
+    FileUtils.write(new java.io.File(buildDir, CIUtils.OutputFileName), output, "UTF-8")
+
+    // Older builds keep only their log: workspaces and tool caches are what fills the disk.
+    val stored = getCIResults(result.userName, result.repositoryName).map(_.buildNumber)
+    CIUtils.buildsToTrim(stored, systemConfig.maxKeptWorkspaces).foreach { buildNumber =>
+      if (CIUtils.trimBuildDir(CIUtils.getBuildDir(result.userName, result.repositoryName, buildNumber))) {
+        logger.info(
+          s"Trimmed build directory of ${result.userName}/${result.repositoryName}#${buildNumber} to its log " +
+          s"(exceeded maxKeptWorkspaces=${systemConfig.maxKeptWorkspaces})"
+        )
+      }
+    }
   }
 
   def getCIResultOutput(result: CIResult): String = {
     val buildDir = CIUtils.getBuildDir(result.userName, result.repositoryName, result.buildNumber)
-    val file = new java.io.File(buildDir, "output")
+    val file = new java.io.File(buildDir, CIUtils.OutputFileName)
     if(file.exists){
       FileUtils.readFileToString(file, "UTF-8")
     } else ""

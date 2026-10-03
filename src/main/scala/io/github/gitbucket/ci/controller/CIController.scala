@@ -14,10 +14,11 @@ import io.github.gitbucket.ci.model.{CIConfig, CISystemConfig}
 import io.github.gitbucket.ci.service.CIService
 import io.github.gitbucket.ci.util.{CIUtils, JobStatus}
 import org.scalatra.forms._
+import org.scalatra.i18n.Messages
 import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
 import org.json4s.jackson.Serialization
-import org.scalatra.{BadRequest, Ok}
+import org.scalatra.{BadRequest, NotFound, Ok}
 
 import scala.util.Using
 
@@ -68,7 +69,8 @@ object CIController {
     dockerCommand: Option[String],
     enableDockerCompose: Boolean,
     dockerComposeCommand: Option[String],
-    buildTimeoutMinutes: Int
+    buildTimeoutMinutes: Int,
+    maxKeptWorkspaces: Int
   )
 
 }
@@ -91,6 +93,16 @@ class CIController extends ControllerBase
     "buildForkPullRequests" -> trim(label("Build fork pull requests", boolean()))
   )(BuildConfigForm.apply)
 
+  // Trimming only applies to stored builds, so more kept workspaces than history entries would mean nothing.
+  private val keptWorkspacesRange: Constraint = new Constraint() {
+    override def validate(name: String, value: String, params: Map[String, Seq[String]], messages: Messages): Option[String] =
+      (value.toIntOption, params.get("maxBuildHistory").flatMap(_.headOption).flatMap(_.trim.toIntOption)) match {
+        case (Some(n), _) if n < 0 => Some(s"${name} must be 0 or more.")
+        case (Some(n), Some(max)) if n > max => Some(s"${name} must not exceed Max build history (${max}).")
+        case _ => None
+      }
+  }
+
   val ciSystemConfigForm = mapping(
     "maxBuildHistory" -> trim(label("Max build history", number())),
     "maxParallelBuilds" -> trim(label("Max parallel builds", number())),
@@ -98,7 +110,8 @@ class CIController extends ControllerBase
     "dockerCommand" -> trim(label("docker command", optional(text()))),
     "enableDockerCompose" -> trim(label("Enable docker-compse", boolean())),
     "dockerComposeCommand" -> trim(label("docker-compose command", optional(text()))),
-    "buildTimeoutMinutes" -> trim(label("Build timeout (minutes)", number()))
+    "buildTimeoutMinutes" -> trim(label("Build timeout (minutes)", number())),
+    "maxKeptWorkspaces" -> trim(label("Max kept workspaces", number(keptWorkspacesRange)))
   )(CISystemConfigForm.apply)
 
   get("/:owner/:repository/build")(referrersOnly { repository =>
@@ -246,11 +259,16 @@ class CIController extends ControllerBase
   private def workspace(repository: RepositoryInfo, buildNumber: Int, path: String) = {
     val buildNumber = params("buildNumber").toInt
     val path = multiParams("splat").headOption.getOrElse("")
-    val file = new java.io.File(CIUtils.getBuildDir(
-      repository.owner, repository.name, buildNumber),
-      FileUtil.checkFilename(s"workspace/${path}")
-    )
-    if(file.isFile){
+    val buildDir = CIUtils.getBuildDir(repository.owner, repository.name, buildNumber)
+    val file = new java.io.File(buildDir, FileUtil.checkFilename(s"workspace/${path}"))
+    if(!new java.io.File(buildDir, "workspace").isDirectory){
+      // Trimmed to its log (see maxKeptWorkspaces), or the build never got that far: point at its sources instead.
+      getCIResult(repository.owner, repository.name, buildNumber).map { result =>
+        gitbucket.ci.html.workspace(repository, buildNumber, Seq("workspace"), Nil, Some(result.sha))
+      } getOrElse NotFound()
+    } else if(!file.exists){
+      NotFound()
+    } else if(file.isFile){
       contentType = FileUtil.getMimeType(path)
       response.setContentLength(file.length.toInt)
       Using.resource(new FileInputStream(file)){ in =>
@@ -267,7 +285,8 @@ class CIController extends ControllerBase
             case (false, true ) => false
             case _ => file1.getName.compareTo(file2.getName) < 0
           }
-        }
+        },
+        None
       )
     }
   }
@@ -388,7 +407,8 @@ class CIController extends ControllerBase
       dockerCommand = form.dockerCommand,
       enableDockerCompose = form.enableDockerCompose,
       dockerComposeCommand = form.dockerComposeCommand,
-      buildTimeoutMinutes = form.buildTimeoutMinutes
+      buildTimeoutMinutes = form.buildTimeoutMinutes,
+      maxKeptWorkspaces = form.maxKeptWorkspaces
     ))
     BuildManager.setMaxParallelBuilds(form.maxParallelBuilds)
     redirect("/admin/build")

@@ -12,6 +12,14 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="control-label col-md-2" for="maxKeptWorkspaces">Max kept workspaces</label>
+          <div class="col-md-10">
+            <input type="input" name="maxKeptWorkspaces" id="maxKeptWorkspaces" class="form-control" value="@systemConfig.maxKeptWorkspaces">
+            <span id="error-maxKeptWorkspaces" class="error"></span>
+            <span class="help-block">Only the most recent builds of each repository keep their files (workspace and tool caches); older ones keep just their log. 0 keeps only logs.</span>
+          </div>
+        </div>
+        <div class="form-group">
           <label class="control-label col-md-2" for="maxParallelBuilds">Max parallel builds</label>
           <div class="col-md-10">
             <input type="input" name="maxParallelBuilds" id="maxParallelBuilds" class="form-control" value="@systemConfig.maxParallelBuilds">
