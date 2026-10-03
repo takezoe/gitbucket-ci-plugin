@@ -25,4 +25,21 @@ class CIUtilsSpec extends AnyFunSuite {
     assert(!html.contains(""))
   }
 
+  test("logFrom returns only what was logged since the given offset") {
+    val log = new StringBuffer("line 1\nline 2\n")
+    val (start, text) = CIUtils.logFrom(log, 7)
+    assert(start == 7 && text == "line 2\n")
+
+    log.append("line 3\n")
+    assert(CIUtils.logFrom(log, start + text.length) == (14, "line 3\n"))
+    assert(CIUtils.logFrom(log, log.length) == (log.length, ""), "nothing new yet")
+  }
+
+  test("logFrom starts over with the whole log when the offset doesn't fit it") {
+    val log = new StringBuffer("line 1\n")
+    assert(CIUtils.logFrom(log, 0) == (0, "line 1\n"))
+    assert(CIUtils.logFrom(log, 99) == (0, "line 1\n"))
+    assert(CIUtils.logFrom(log, -1) == (0, "line 1\n"))
+  }
+
 }

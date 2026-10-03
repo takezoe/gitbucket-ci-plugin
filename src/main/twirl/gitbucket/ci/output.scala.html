@@ -52,7 +52,7 @@
           </td>
         </tr>
       </table>
-      <pre id="output" style="background-color: black; color: white;" v-html="output"></pre>
+      <pre id="output" style="background-color: black; color: white;" v-once></pre>
       <span v-if="loading"><img src="@assets("/common/images/indicator.gif")"> Loading...</span>
     </div>
   }
@@ -61,7 +61,6 @@
 var app = new Vue({
   el: '#app',
   data: {
-    output: '',
     status: '@status.status',
     loading: true
   },
@@ -82,9 +81,18 @@ var app = new Vue({
   }
 });
 
+var outputOffset = 0;
+
 function fetchJobOutput(){
-  $.get('@url(repository)/build/@status.buildNumber/output', function(data){
-    app.$data.output = data.output;
+  $.get('@url(repository)/build/@status.buildNumber/output', { from: outputOffset }, function(data){
+    // Append only the new lines; a response from 0 is the whole log and replaces it
+    var output = document.getElementById('output');
+    if(data.from == 0){
+      output.innerHTML = data.output;
+    } else {
+      output.insertAdjacentHTML('beforeend', data.output);
+    }
+    outputOffset = data.next;
     if(data.status == '@JobStatus.Running'){
       setTimeout(function(){ fetchJobOutput(); }, 1000)
     } else {
