@@ -30,7 +30,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
     assert(result == 1, "must return the build's own exit code, not run's, when the build fails")
   }
 
-  test("runProcess kills a hung process once its timeout elapses, freeing the worker thread") {
+  test("runBuildProcess kills a hung process once its timeout elapses, freeing the worker thread") {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
     val config = CIConfig("root", "test", "script", "", false, None, None, false)
@@ -38,7 +38,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
 
     val thread = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]())
     val method = classOf[BuildJobThread].getDeclaredMethod(
-      "runProcess", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
+      "runBuildProcess", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
     method.setAccessible(true)
 
     val dir = Files.createTempDirectory("ci-test").toFile
