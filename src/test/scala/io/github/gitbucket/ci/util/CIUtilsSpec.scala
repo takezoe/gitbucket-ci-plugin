@@ -64,18 +64,39 @@ class CIUtilsSpec extends AnyFunSuite {
       FileUtils.write(new File(buildDir, ".m2/repository/x.pom"), "pom", "UTF-8")
       FileUtils.write(new File(buildDir, "build.sh"), "echo", "UTF-8")
 
-      assert(CIUtils.trimBuildDir(buildDir))
+      val trimmed = CIUtils.trimBuildDir(buildDir)
+      assert(trimmed.map(_._1.getName).sorted == Seq(".m2", "build.sh", "workspace"))
+      assert(trimmed.forall(_._2), "every entry must report a successful delete")
       assert(buildDir.list().toSeq == Seq("output"))
       assert(FileUtils.readFileToString(new File(buildDir, "output"), "UTF-8") == "log")
 
-      assert(!CIUtils.trimBuildDir(buildDir), "an already trimmed directory has nothing left to delete")
+      assert(CIUtils.trimBuildDir(buildDir).isEmpty, "an already trimmed directory has nothing left to delete")
     } finally {
       FileUtils.deleteQuietly(buildDir)
     }
   }
 
+  test("trimBuildDir reports the entries it could not delete") {
+    // A read-only directory doesn't stop root (or Windows) from deleting what's in it
+    assume(!CIUtils.isWindows && System.getProperty("user.name") != "root")
+    val buildDir = Files.createTempDirectory("ci-build").toFile
+    val locked = new File(buildDir, "workspace")
+    try {
+      FileUtils.write(new File(buildDir, "output"), "log", "UTF-8")
+      FileUtils.write(new File(locked, "app.jar"), "jar", "UTF-8")
+      FileUtils.write(new File(buildDir, "build.sh"), "echo", "UTF-8")
+      locked.setWritable(false)
+
+      val trimmed = CIUtils.trimBuildDir(buildDir).map { case (file, deleted) => (file.getName, deleted) }
+      assert(trimmed.sorted == Seq(("build.sh", true), ("workspace", false)))
+    } finally {
+      locked.setWritable(true)
+      FileUtils.deleteQuietly(buildDir)
+    }
+  }
+
   test("trimBuildDir tolerates a missing build directory") {
-    assert(!CIUtils.trimBuildDir(new File(Files.createTempDirectory("ci-build").toFile, "missing")))
+    assert(CIUtils.trimBuildDir(new File(Files.createTempDirectory("ci-build").toFile, "missing")).isEmpty)
   }
 
 }

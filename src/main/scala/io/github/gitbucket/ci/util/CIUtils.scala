@@ -35,13 +35,13 @@ object CIUtils {
 
   /**
    * Deletes everything in a build directory but its log: the workspace, and the caches tools put
-   * under HOME (which is the build directory). Returns whether anything was deleted.
+   * under HOME (which is the build directory). Returns each entry it tried to delete, with whether
+   * that worked; empty when there was nothing left to delete.
    */
-  def trimBuildDir(buildDir: File): Boolean = {
-    val files = Option(buildDir.listFiles).toSeq.flatten.filterNot(_.getName == OutputFileName)
-    files.foreach(FileUtils.deleteQuietly)
-    files.nonEmpty
-  }
+  def trimBuildDir(buildDir: File): Seq[(File, Boolean)] =
+    Option(buildDir.listFiles).toSeq.flatten.filterNot(_.getName == OutputFileName).map { file =>
+      (file, FileUtils.deleteQuietly(file))
+    }
 
   def colorize(text: String) = {
     Using.resource(new ByteArrayOutputStream()){ os =>

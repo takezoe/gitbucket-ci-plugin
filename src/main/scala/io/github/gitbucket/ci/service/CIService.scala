@@ -200,7 +200,14 @@ trait CIService { self: AccountService with RepositoryService =>
     // Older builds keep only their log: workspaces and tool caches are what fills the disk.
     val stored = getCIResults(result.userName, result.repositoryName).map(_.buildNumber)
     CIUtils.buildsToTrim(stored, systemConfig.maxKeptWorkspaces).foreach { buildNumber =>
-      if (CIUtils.trimBuildDir(CIUtils.getBuildDir(result.userName, result.repositoryName, buildNumber))) {
+      val trimmed = CIUtils.trimBuildDir(CIUtils.getBuildDir(result.userName, result.repositoryName, buildNumber))
+      val failed = trimmed.collect { case (file, false) => file.getName }
+      if (failed.nonEmpty) {
+        logger.warn(
+          s"Could not delete ${failed.mkString(", ")} from the build directory of " +
+          s"${result.userName}/${result.repositoryName}#${buildNumber}; will retry after the next build"
+        )
+      } else if (trimmed.nonEmpty) {
         logger.info(
           s"Trimmed build directory of ${result.userName}/${result.repositoryName}#${buildNumber} to its log " +
           s"(exceeded maxKeptWorkspaces=${systemConfig.maxKeptWorkspaces})"
