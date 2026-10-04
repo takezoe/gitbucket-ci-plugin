@@ -16,6 +16,15 @@ object CIUtils {
     new java.io.File(dir, s"build/${buildNumber}")
   }
 
+  /**
+   * What a running build has logged since `from`, as (start, text). Starts over at 0 when `from` doesn't fit the
+   * log, so callers replace rather than append whenever start is 0. Every append to the log is whole lines.
+   */
+  def logFrom(log: StringBuffer, from: Int): (Int, String) = log.synchronized {
+    val start = if (from >= 0 && from <= log.length) from else 0
+    (start, log.substring(start))
+  }
+
   def colorize(text: String) = {
     Using.resource(new ByteArrayOutputStream()){ os =>
       Using.resource(new HtmlAnsiOutputStream(os)){ hos =>

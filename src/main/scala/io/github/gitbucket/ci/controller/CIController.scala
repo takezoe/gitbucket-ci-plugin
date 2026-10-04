@@ -23,9 +23,15 @@ import scala.util.Using
 
 object CIController {
 
+  /**
+   * @param from where `output` starts in the raw log: 0 means it is the whole log, otherwise it continues the last one.
+   * @param next the `from` to ask for next time.
+   */
   case class ApiJobOutput(
     status: String,
-    output: String
+    output: String,
+    from: Int,
+    next: Int
   )
 
   case class ApiJobStatus(
@@ -151,18 +157,23 @@ class CIController extends ControllerBase
 
   ajaxGet("/:owner/:repository/build/:buildNumber/output")(referrersOnly { repository =>
     val buildNumber = params("buildNumber").toInt
+    // Only what's new since the last poll while the build runs, so a long log isn't sent over and over
+    val from = params.get("from").flatMap(_.toIntOption).getOrElse(0)
 
     getRunningJobs(repository.owner, repository.name)
       .find { case (job, sb) => job.buildNumber == buildNumber }
       .map  { case (job, sb) =>
+        val (start, text) = CIUtils.logFrom(sb, from)
         contentType = formats("json")
-        Serialization.write(ApiJobOutput("running", CIUtils.colorize(sb.toString)))
+        Serialization.write(ApiJobOutput("running", CIUtils.colorize(text), start, start + text.length))
     } orElse {
       getCIResults(repository.owner, repository.name)
         .find { result => result.buildNumber == buildNumber }
         .map  { result =>
+          // Always the whole log once finished: it replaces what was shown while running
+          val text = getCIResultOutput(result)
           contentType = formats("json")
-          Serialization.write(ApiJobOutput(result.status, CIUtils.colorize(getCIResultOutput(result))))
+          Serialization.write(ApiJobOutput(result.status, CIUtils.colorize(text), 0, text.length))
         }
     } getOrElse NotFound()
   })
