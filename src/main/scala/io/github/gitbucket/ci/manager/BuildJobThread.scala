@@ -21,7 +21,6 @@ import org.eclipse.jgit.api.Git
 import org.slf4j.LoggerFactory
 
 import scala.jdk.CollectionConverters._
-import scala.sys.process.Process
 import scala.util.control.{ControlThrowable, NonFatal}
 import scala.util.Using
 
@@ -233,11 +232,22 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     }
   }
 
+  /** How long each cleanup step may take; they run after the build's deadline, so they need their own. */
+  private[manager] def cleanupTimeoutMillis: Long = BuildJobThread.CleanupTimeoutMillis
+
+  private def runCleanupProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, targetUrl: Option[String]): Int =
+    runProcess(job, buildDir, workspaceDir, command, System.currentTimeMillis() + cleanupTimeoutMillis, targetUrl,
+      "CLEANUP TIMEOUT: cleanup time limit exceeded, killing the cleanup process\n")
+
+  private def runBuildProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, deadline: Long, targetUrl: Option[String]): Int =
+    runProcess(job, buildDir, workspaceDir, command, deadline, targetUrl,
+      "BUILD TIMEOUT: build time limit exceeded, killing the build process\n")
+
   /**
    * @param deadline epoch millis at which the process is killed; Long.MaxValue disables it.
    * @param targetUrl link back to this build's own page, exposed to the process as CI_SERVER_URL.
    */
-  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, deadline: Long, targetUrl: Option[String]): Int = {
+  private def runProcess(job: BuildJob, buildDir: File, workspaceDir: File, command: String, deadline: Long, targetUrl: Option[String], timeoutMessage: String): Int = {
     val builder = new ProcessBuilder(command.trim.split("\\s+").toList.asJava).directory(workspaceDir).redirectErrorStream(true)
     builder.environment().putAll(Map(
       "CI" -> "true",
@@ -273,7 +283,7 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       }
     } finally {
       if (process.isAlive()) {
-        sb.append("BUILD TIMEOUT: build time limit exceeded, killing the build process\n")
+        sb.append(timeoutMessage)
         killProcessTree(process)
       }
       // A process that escaped the tree may still hold the output pipe open; don't wait on it forever.
@@ -290,13 +300,13 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
   private def runScriptJob(job: BuildJob, buildDir: File, workspaceDir: File, deadline: Long, targetUrl: Option[String]): Int = {
     // run script
     val command = prepareBuildScript(buildDir, job.config.buildScript)
-    runProcess(job, buildDir, workspaceDir, command, deadline, targetUrl)
+    runBuildProcess(job, buildDir, workspaceDir, command, deadline, targetUrl)
   }
 
   private def runFileJob(job: BuildJob, buildDir: File, workspaceDir: File, deadline: Long, targetUrl: Option[String]): Int = {
     // run script
     val command = prepareBuildFile(buildDir, job.config.buildScript)
-    runProcess(job, buildDir, workspaceDir, command, deadline, targetUrl)
+    runBuildProcess(job, buildDir, workspaceDir, command, deadline, targetUrl)
   }
 
   private def runDockerJob(job: BuildJob, buildDir: File, workspaceDir: File, dockerCommand: String, deadline: Long, targetUrl: Option[String]): Int = {
@@ -308,20 +318,20 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val runContainerCommand = s"${dockerCommand} run --rm --name ${containerName} ${tagName}"
 
     sb.append(s"${buildContainerCommand}\n")
-    val buildResult = runProcess(job, buildDir, workspaceDir, buildContainerCommand, deadline, targetUrl)
+    val buildResult = runBuildProcess(job, buildDir, workspaceDir, buildContainerCommand, deadline, targetUrl)
     if (buildResult == 0){
       sb.append(s"${runContainerCommand}\n")
-      val exitCode = runProcess(job, buildDir, workspaceDir, runContainerCommand, deadline, targetUrl)
+      val exitCode = runBuildProcess(job, buildDir, workspaceDir, runContainerCommand, deadline, targetUrl)
 
       // Killing the docker client doesn't stop the container itself.
       if (cancelled.get() || System.currentTimeMillis() >= deadline) {
-        runProcess(job, buildDir, workspaceDir, s"${dockerCommand} kill ${containerName}", Long.MaxValue, targetUrl)
+        runCleanupProcess(job, buildDir, workspaceDir, s"${dockerCommand} kill ${containerName}", targetUrl)
       }
 
-      val imageId = Process(s"""${dockerCommand} images --format {{.ID}} ${tagName}""").!!.stripLineEnd
-      val rmImageCommand = s"${dockerCommand} rmi --force ${imageId}"
+      // By tag rather than looked-up ID: no extra unbounded docker call, and other tags of the same image are left alone.
+      val rmImageCommand = s"${dockerCommand} rmi --force ${tagName}"
       sb.append(s"$rmImageCommand\n")
-      runProcess(job, buildDir, workspaceDir, rmImageCommand, Long.MaxValue, targetUrl)
+      runCleanupProcess(job, buildDir, workspaceDir, rmImageCommand, targetUrl)
 
       exitCode
     }else{
@@ -339,11 +349,11 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
     val downCommand = s"${composeCommand} -f ${composeFile} down --rmi all"
 
     sb.append(s"${buildCommand}\n")
-    val buildResult = runProcess(job, buildDir, workspaceDir, buildCommand, deadline, targetUrl)
+    val buildResult = runBuildProcess(job, buildDir, workspaceDir, buildCommand, deadline, targetUrl)
     if(buildResult == 0){
       sb.append(s"${runCommand}\n")
-      val exitCode = runProcess(job, buildDir, workspaceDir, runCommand, deadline, targetUrl)
-      runProcess(job, buildDir, workspaceDir, downCommand, Long.MaxValue, targetUrl)
+      val exitCode = runBuildProcess(job, buildDir, workspaceDir, runCommand, deadline, targetUrl)
+      runCleanupProcess(job, buildDir, workspaceDir, downCommand, targetUrl)
 
       exitCode
     }else{
@@ -433,6 +443,10 @@ class BuildJobThread(queue: LinkedBlockingQueue[BuildJob], threads: LinkedBlocki
       "./" + buildScript
     }
   }
+}
+
+object BuildJobThread {
+  val CleanupTimeoutMillis: Long = 5 * 60 * 1000
 }
 
 /**

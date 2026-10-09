@@ -30,7 +30,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
     assert(result == 1, "must return the build's own exit code, not run's, when the build fails")
   }
 
-  test("runProcess kills a hung process once its timeout elapses, freeing the worker thread") {
+  test("runBuildProcess kills a hung process once its timeout elapses, freeing the worker thread") {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
     val config = CIConfig("root", "test", "script", "", false, None, None, false)
@@ -38,7 +38,7 @@ class BuildJobThreadSpec extends AnyFunSuite {
 
     val thread = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]())
     val method = classOf[BuildJobThread].getDeclaredMethod(
-      "runProcess", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
+      "runBuildProcess", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
     method.setAccessible(true)
 
     val dir = Files.createTempDirectory("ci-test").toFile
@@ -106,6 +106,44 @@ class BuildJobThreadSpec extends AnyFunSuite {
     assert(!threads.contains(thread), "a stopped worker must unregister itself")
   }
 
+  test("a hung docker-compose cleanup is killed after the cleanup timeout") {
+    val method = classOf[BuildJobThread].getDeclaredMethod(
+      "runDockerComposeJob", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
+    method.setAccessible(true)
+
+    // build and run succeed; "down" hangs. Cleanup runs with no build deadline left to bound it.
+    val dir = Files.createTempDirectory("ci-test").toFile
+    val fakeCompose = script(dir, """test "$3" = down && sleep 60; exit 0""")
+    val thread = newThread(cleanupTimeout = 300)
+    val start = System.currentTimeMillis()
+
+    val result = method.invoke(thread, newJob("docker-compose"), dir, dir, fakeCompose, java.lang.Long.valueOf(Long.MaxValue), None).asInstanceOf[Integer].intValue()
+    val elapsed = System.currentTimeMillis() - start
+
+    assert(result == 0, "a hung cleanup must not change the build's own result")
+    assert(elapsed < 15000, s"the cleanup timeout must bound how long the worker thread is occupied, took ${elapsed}ms")
+    assert(thread.sb.toString.contains("CLEANUP TIMEOUT"))
+  }
+
+  test("a hung docker image removal is killed after the cleanup timeout") {
+    val method = classOf[BuildJobThread].getDeclaredMethod(
+      "runDockerJob", classOf[BuildJob], classOf[File], classOf[File], classOf[String], classOf[Long], classOf[Option[_]])
+    method.setAccessible(true)
+
+    // build and run succeed; "rmi" hangs.
+    val dir = Files.createTempDirectory("ci-test").toFile
+    val fakeDocker = script(dir, """test "$1" = rmi && sleep 60; exit 0""")
+    val thread = newThread(cleanupTimeout = 300)
+    val start = System.currentTimeMillis()
+
+    val result = method.invoke(thread, newJob("docker"), dir, dir, fakeDocker, java.lang.Long.valueOf(Long.MaxValue), None).asInstanceOf[Integer].intValue()
+    val elapsed = System.currentTimeMillis() - start
+
+    assert(result == 0, "a hung cleanup must not change the build's own result")
+    assert(elapsed < 15000, s"the cleanup timeout must bound how long the worker thread is occupied, took ${elapsed}ms")
+    assert(thread.sb.toString.contains("CLEANUP TIMEOUT"))
+  }
+
   private def newJob(buildType: String): BuildJob = {
     val now = new java.util.Date()
     val account = Account(0L, "root", "root", "root@x", "", false, None, now, now, None, None, false, false, None)
@@ -114,6 +152,10 @@ class BuildJobThreadSpec extends AnyFunSuite {
   }
 
   private def newThread() = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]())
+
+  private def newThread(cleanupTimeout: Long) = new BuildJobThread(new LinkedBlockingQueue[BuildJob](), new LinkedBlockingQueue[BuildJobThread]()) {
+    override private[manager] def cleanupTimeoutMillis: Long = cleanupTimeout
+  }
 
   private def script(dir: File, body: String): String = {
     val file = new File(dir, "test.sh")
