@@ -1,5 +1,6 @@
 @(repository: gitbucket.core.service.RepositoryService.RepositoryInfo,
-  buildNumber: Int, pathList: Seq[String], files: Seq[java.io.File])(implicit context: gitbucket.core.controller.Context)
+  buildNumber: Int, pathList: Seq[String], files: Seq[java.io.File],
+  removedFromSha: Option[String])(implicit context: gitbucket.core.controller.Context)
 @import gitbucket.core.view.helpers._
 @gitbucket.core.html.main(s"Build - ${repository.owner}/${repository.name}", Some(repository)) {
   @gitbucket.core.html.menu("build", repository) {
@@ -13,6 +14,12 @@
         }
       }
     </div>
+    @removedFromSha.map { sha =>
+      <p class="muted">
+        This build has no files to browse: only the most recent builds keep their workspace.
+        Its sources are at commit <a href="@url(repository)/tree/@sha" class="monospace">@sha.substring(0, 7)</a>.
+      </p>
+    }
     <table class="table table-hover">
     @files.map { file =>
       @if(file.isDirectory){
